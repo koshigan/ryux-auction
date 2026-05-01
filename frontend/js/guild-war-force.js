@@ -35,10 +35,10 @@ async function initForcePage() {
 
 function renderForceInfo() {
   document.getElementById('force-name').textContent = currentForce.name;
-  document.getElementById('force-captain').textContent = `Captaincy: ${currentForce.captain} (${currentForce.post})`;
+  document.getElementById('force-captain').textContent = `Captaincy: ${currentForce.captain || 'Force Captain'} (${currentForce.post || 'Force'})`;
   
   const badge = document.getElementById('force-badge');
-  badge.textContent = currentForce.post;
+  badge.textContent = currentForce.post || 'Force';
   badge.className = 'eyebrow';
 }
 

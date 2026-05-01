@@ -15,6 +15,7 @@ async function initGuildWarPage() {
   buildNavbar(currentUser);
   
   guildWarState = await getGuildWarState();
+  // guild-war-core.js's getGuildWarState now calls getForces() internally
 
   if (currentUser.role === 'war_leader' && currentUser.guildTeamId) {
     selectedTeamId = currentUser.guildTeamId;
@@ -102,6 +103,7 @@ function renderSessionAccess() {
       <button class="btn btn-secondary" onclick="openSetTargetModal()">Set Targets</button>
       <button class="btn btn-secondary" onclick="openAddPlayerModal()">Add Player</button>
       <button class="btn btn-secondary" onclick="openEditRoundModal()">Edit Round</button>
+      <button class="btn btn-danger" onclick="resetToSampleData()">Reset to Sample</button>
     `;
     adminActions.style.display = 'flex';
 
@@ -241,9 +243,12 @@ function renderForceGrid() {
 
     return `
       <article class="force-card ${selectedForceId === force.id ? 'selected' : ''} ${accessible ? '' : 'restricted'}" onclick="selectForce('${force.id}')" tabindex="0" onkeydown="handleForceCardKey(event, '${force.id}')">
-        <span class="badge ${force.id === 'sukuna' ? 'badge-red' : force.id === 'alien' ? 'badge-blue' : 'badge-gold'}">${force.post}</span>
+        <div class="force-card-header">
+           ${force.logo_url ? `<img src="${force.logo_url}" class="force-card-logo" onerror="handleImageError(this, '${force.name[0]}')">` : `<div class="force-logo-placeholder">${force.name[0]}</div>`}
+           <span class="badge ${force.id === 'sukuna' ? 'badge-red' : force.id === 'alien' ? 'badge-blue' : 'badge-gold'}">${force.post}</span>
+        </div>
         <h3>${escapeHtml(force.name)}</h3>
-        <p>Captaincy: ${escapeHtml(force.captain)}</p>
+        <p>Captaincy: ${escapeHtml(force.captain || 'Force Captain')}</p>
         <strong>${teams.length} Teams</strong>
         <p>${achieved} / ${target || 0} force points</p>
       </article>
@@ -959,3 +964,23 @@ function escapeHtml(value) {
 }
 
 initGuildWarPage();
+
+/**
+ * Resets the entire Guild War state to the sample data.
+ */
+async function resetToSampleData() {
+  if (!isAdmin()) return;
+  
+  if (!confirm('Are you sure you want to reset all team data to the 13 sample teams? This will overwrite your current progress.')) {
+    return;
+  }
+
+  // fallbackGuildWarState is defined in guild-war-core.js
+  guildWarState = JSON.parse(JSON.stringify(fallbackGuildWarState));
+  
+  await saveGuildWarState(guildWarState);
+  renderAll();
+  renderSessionAccess();
+  
+  toast('Data reset to 13 sample teams successfully.', 'success');
+}

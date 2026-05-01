@@ -5,11 +5,14 @@
 
 const GUILD_WAR_STORAGE_KEY = 'ryuxGuildWarStateV2';
 
-const guildWarForces = [
+// Default hardcoded forces (used if DB is empty or as base)
+const defaultGuildWarForces = [
   { id: 'sukuna', name: 'Sukuna & Co', post: 'Guild Leader', captain: 'Sukuna', teamIds: [1, 2, 3, 4, 5] },
   { id: 'alien', name: 'Alien Force', post: 'Acting Guild Leader', captain: 'Acting Guild Leader', teamIds: [6, 7, 8, 9] },
   { id: 'das', name: 'Das & Co', post: 'Supreme Leader', captain: 'Supreme Leader', teamIds: [10, 11, 12, 13] }
 ];
+
+let guildWarForces = [...defaultGuildWarForces];
 
 const fallbackGuildWarState = {
   currentRound: 1,
@@ -20,6 +23,7 @@ const fallbackGuildWarState = {
       leaderName: 'Raiden',
       leaderEmail: 'blackbulls@ryuxesports.com',
       status: 'Active',
+      forceId: 'sukuna',
       members: [
         { id: 1001, name: 'Raiden', role: 'War Leader', targetPoints: 220, achievedPoints: 185 },
         { id: 1002, name: 'Ares', role: 'Player', targetPoints: 180, achievedPoints: 172 },
@@ -33,6 +37,7 @@ const fallbackGuildWarState = {
       leaderName: 'Vortex',
       leaderEmail: 'redreapers@ryuxesports.com',
       status: 'Active',
+      forceId: 'sukuna',
       members: [
         { id: 2001, name: 'Vortex', role: 'War Leader', targetPoints: 210, achievedPoints: 194 },
         { id: 2002, name: 'Blaze', role: 'Player', targetPoints: 180, achievedPoints: 176 },
@@ -46,6 +51,7 @@ const fallbackGuildWarState = {
       leaderName: 'Cipher',
       leaderEmail: 'stormhunters@ryuxesports.com',
       status: 'Active',
+      forceId: 'sukuna',
       members: [
         { id: 3001, name: 'Cipher', role: 'War Leader', targetPoints: 230, achievedPoints: 205 },
         { id: 3002, name: 'Echo', role: 'Player', targetPoints: 185, achievedPoints: 181 },
@@ -53,16 +59,119 @@ const fallbackGuildWarState = {
         { id: 3004, name: 'Trigger', role: 'Player', targetPoints: 178, achievedPoints: 174 }
       ]
     },
-    { id: 4, name: 'Iron Phantoms', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 5, name: 'Crimson Wolves', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 6, name: 'Toxic Ravens', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 7, name: 'Royal Havoc', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 8, name: 'Silent Vipers', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 9, name: 'Night Raiders', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 10, name: 'Rift Titans', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 11, name: 'Omega Force', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 12, name: 'Inferno Unit', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] },
-    { id: 13, name: 'Dragon Sentinels', leaderName: 'Awaiting Leader', leaderEmail: '-', status: 'Pending', members: [] }
+    {
+      id: 4,
+      name: 'Iron Phantoms',
+      leaderName: 'Kage',
+      leaderEmail: 'ironphantoms@ryuxesports.com',
+      status: 'Active',
+      forceId: 'sukuna',
+      members: [
+        { id: 4001, name: 'Kage', role: 'War Leader', targetPoints: 200, achievedPoints: 150 },
+        { id: 4002, name: 'Slayer', role: 'Player', targetPoints: 180, achievedPoints: 140 }
+      ]
+    },
+    {
+      id: 5,
+      name: 'Crimson Wolves',
+      leaderName: 'Wolf',
+      leaderEmail: 'crimsonwolves@ryuxesports.com',
+      status: 'Active',
+      forceId: 'sukuna',
+      members: [
+        { id: 5001, name: 'Wolf', role: 'War Leader', targetPoints: 220, achievedPoints: 190 },
+        { id: 5002, name: 'Fang', role: 'Player', targetPoints: 180, achievedPoints: 160 }
+      ]
+    },
+    {
+      id: 6,
+      name: 'Toxic Ravens',
+      leaderName: 'Venom',
+      leaderEmail: 'toxicravens@ryuxesports.com',
+      status: 'Active',
+      forceId: 'alien',
+      members: [
+        { id: 6001, name: 'Venom', role: 'War Leader', targetPoints: 200, achievedPoints: 170 },
+        { id: 6002, name: 'Toxin', role: 'Player', targetPoints: 180, achievedPoints: 150 }
+      ]
+    },
+    {
+      id: 7,
+      name: 'Royal Havoc',
+      leaderName: 'King',
+      leaderEmail: 'royalhavoc@ryuxesports.com',
+      status: 'Active',
+      forceId: 'alien',
+      members: [
+        { id: 7001, name: 'King', role: 'War Leader', targetPoints: 250, achievedPoints: 230 }
+      ]
+    },
+    {
+      id: 8,
+      name: 'Silent Vipers',
+      leaderName: 'Serpent',
+      leaderEmail: 'silentvipers@ryuxesports.com',
+      status: 'Active',
+      forceId: 'alien',
+      members: [
+        { id: 8001, name: 'Serpent', role: 'War Leader', targetPoints: 200, achievedPoints: 180 }
+      ]
+    },
+    {
+      id: 9,
+      name: 'Night Raiders',
+      leaderName: 'Stalker',
+      leaderEmail: 'nightraiders@ryuxesports.com',
+      status: 'Active',
+      forceId: 'alien',
+      members: [
+        { id: 9001, name: 'Stalker', role: 'War Leader', targetPoints: 200, achievedPoints: 190 }
+      ]
+    },
+    {
+      id: 10,
+      name: 'Rift Titans',
+      leaderName: 'Goliath',
+      leaderEmail: 'rifttitans@ryuxesports.com',
+      status: 'Active',
+      forceId: 'das',
+      members: [
+        { id: 10001, name: 'Goliath', role: 'War Leader', targetPoints: 300, achievedPoints: 280 }
+      ]
+    },
+    {
+      id: 11,
+      name: 'Omega Force',
+      leaderName: 'Alpha',
+      leaderEmail: 'omegaforce@ryuxesports.com',
+      status: 'Active',
+      forceId: 'das',
+      members: [
+        { id: 11001, name: 'Alpha', role: 'War Leader', targetPoints: 240, achievedPoints: 220 }
+      ]
+    },
+    {
+      id: 12,
+      name: 'Inferno Unit',
+      leaderName: 'Pyro',
+      leaderEmail: 'infernounit@ryuxesports.com',
+      status: 'Active',
+      forceId: 'das',
+      members: [
+        { id: 12001, name: 'Pyro', role: 'War Leader', targetPoints: 220, achievedPoints: 200 }
+      ]
+    },
+    {
+      id: 13,
+      name: 'Dragon Sentinels',
+      leaderName: 'Draco',
+      leaderEmail: 'dragonsentinels@ryuxesports.com',
+      status: 'Active',
+      forceId: 'das',
+      members: [
+        { id: 13001, name: 'Draco', role: 'War Leader', targetPoints: 260, achievedPoints: 240 }
+      ]
+    }
   ]
 };
 
@@ -70,19 +179,17 @@ const fallbackGuildWarState = {
  * Normalizes the state to ensure it has all required properties and preserves all teams.
  */
 function normalizeGuildWarState(state) {
-  if (!state) return JSON.parse(JSON.stringify(fallbackGuildWarState));
+  const baseState = JSON.parse(JSON.stringify(fallbackGuildWarState));
+  if (!state) return baseState;
 
   const normalized = {
     currentRound: Number(state.currentRound || 1),
     teams: []
   };
 
-  // Combine stored teams with fallback teams to ensure we have at least the minimum slots,
-  // but also preserve any NEW teams added beyond the fallback count.
   const storedTeams = Array.isArray(state.teams) ? state.teams : [];
-  const fallbackTeams = fallbackGuildWarState.teams;
+  const fallbackTeams = baseState.teams;
 
-  // Use a Map to deduplicate teams by ID, prioritizing stored data
   const teamsMap = new Map();
 
   // 1. Start with fallback teams
@@ -107,11 +214,44 @@ function normalizeGuildWarState(state) {
 }
 
 function getDefaultForceId(teamId) {
-  const force = guildWarForces.find((f) => f.teamIds.includes(Number(teamId)));
-  return force ? force.id : guildWarForces[0].id;
+  const force = guildWarForces.find((f) => f.teamIds && f.teamIds.includes(Number(teamId)));
+  return force ? force.id : (guildWarForces[0] ? guildWarForces[0].id : 'sukuna');
+}
+
+async function getForces() {
+  try {
+    const dbForces = await api.get('/api/forces');
+    if (dbForces && dbForces.length > 0) {
+      // Map DB forces to the structure we use
+      const mappedDbForces = dbForces.map(f => ({
+        id: String(f.id),
+        name: f.name,
+        post: f.description || 'Force',
+        captain: 'Force Captain',
+        logo_url: f.logo_url
+      }));
+      
+      // Combine hardcoded defaults with DB forces, ensuring no name duplicates
+      const uniqueForces = [...defaultGuildWarForces];
+      mappedDbForces.forEach(df => {
+        if (!uniqueForces.find(uf => uf.name.toLowerCase() === df.name.toLowerCase())) {
+          uniqueForces.push(df);
+        }
+      });
+      guildWarForces = uniqueForces;
+      return guildWarForces;
+    }
+  } catch (error) {
+    console.debug('[GuildWar] Failed to fetch dynamic forces:', error);
+  }
+  guildWarForces = [...defaultGuildWarForces];
+  return guildWarForces;
 }
 
 async function getGuildWarState() {
+  // Ensure forces are loaded first
+  await getForces();
+
   // 1. Try Server
   try {
     const data = await api.get('/api/guild-war/state');
@@ -150,12 +290,12 @@ async function saveGuildWarState(state) {
 }
 
 function getForce(forceId) {
-  return guildWarForces.find((f) => f.id === forceId) || guildWarForces[0];
+  return guildWarForces.find((f) => String(f.id) === String(forceId)) || guildWarForces[0];
 }
 
 function getTeamsForForce(state, forceId) {
   if (!state || !state.teams) return [];
-  return state.teams.filter(t => t.forceId === forceId);
+  return state.teams.filter(t => String(t.forceId) === String(forceId));
 }
 
 function getTeamForceId(state, teamId) {

@@ -696,3 +696,32 @@ a:hover { text-decoration: underline; }
 @media (max-width: 768px) {
   .d-none-sm { display: none; }
 }
+
+/* ── FORCE CARD LOGO ───────────────────────────────────────── */
+.force-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.force-card-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+.force-logo-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: bold;
+  color: var(--accent);
+}
