@@ -352,7 +352,7 @@
           credentials: 'include'
         });
         const data = await res.json();
-        if (!data.user || !data.user.is_admin) {
+        if (!data || !data.is_admin) {
           showMessage('You do not have admin access', 'error');
           setTimeout(() => {
             window.location.href = '/dashboard';

@@ -154,15 +154,13 @@ router.get('/me', async (req, res) => {
     const isAdmin = users.length > 0 ? users[0].is_admin : 0;
     
     res.json({
-      user: {
-        id: req.session.userId,
-        name: req.session.userName,
-        avatar: req.session.userAvatar,
-        role: req.session.userRole || 'admin',
-        is_admin: isAdmin,
-        guildTeamId: req.session.guildTeamId || null,
-        guildForceId: req.session.guildForceId || null
-      }
+      id: req.session.userId,
+      name: req.session.userName,
+      avatar: req.session.userAvatar,
+      role: req.session.userRole || 'admin',
+      is_admin: isAdmin,
+      guildTeamId: req.session.guildTeamId || null,
+      guildForceId: req.session.guildForceId || null
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
