@@ -4,6 +4,14 @@ async function migrate() {
   try {
     console.log('Starting migration...');
     
+    // Create database if not exists
+    await db.query(`CREATE DATABASE IF NOT EXISTS auction_db`);
+    console.log('✅ auction_db database ensured');
+    
+    // Use the database
+    await db.query(`USE auction_db`);
+    console.log('✅ Using auction_db');
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS forces (
         id INT AUTO_INCREMENT PRIMARY KEY,

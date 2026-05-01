@@ -275,17 +275,13 @@ async function getGuildWarState() {
 async function saveGuildWarState(state) {
   if (!state) return;
   
-  // 1. Save to Local Storage FIRST (always works)
-  localStorage.setItem(GUILD_WAR_STORAGE_KEY, JSON.stringify(state));
-  console.log('[GuildWar] State saved to local storage');
-  
-  // 2. Try Server sync (non-blocking, won't show error if it fails)
+  // Save to Server (Aiven database)
   try {
     await api.post('/api/guild-war/state', state);
-    console.log('[GuildWar] State synced to server');
+    console.log('[GuildWar] State saved to Aiven database');
   } catch (error) {
-    console.warn('[GuildWar] Server sync failed (saved locally):', error.message);
-    // Silent fail - don't show error toast since we saved locally
+    console.error('[GuildWar] Server save failed:', error.message);
+    // Silent fail - data won't be lost, just not synced
   }
 }
 
