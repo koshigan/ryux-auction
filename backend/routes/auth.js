@@ -56,10 +56,11 @@ router.post('/register', validateRegister, async (req, res) => {
       name,
       avatar,
       role: 'admin',
-      guildTeamId: null
+      guildTeamId: null,
+      is_admin: 0
     });
 
-    res.json({ success: true, user: { id: result.insertId, name, email, avatar } });
+    res.json({ success: true, user: { id: result.insertId, name, email, avatar, is_admin: 0 } });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Server error during registration.' });
@@ -117,12 +118,13 @@ router.post('/login', async (req, res) => {
       name: user.name,
       avatar: user.avatar,
       role: 'admin',
-      guildTeamId: null
+      guildTeamId: null,
+      is_admin: user.is_admin || 0
     });
 
     res.json({
       success: true,
-      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, role: 'admin', guildTeamId: null }
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, role: 'admin', is_admin: user.is_admin || 0 }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -142,18 +144,29 @@ router.post('/logout', (req, res) => {
 
 // ── GET CURRENT USER ──────────────────────────────────────
 // GET /api/auth/me
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Not authenticated.' });
   }
-  res.json({
-    id: req.session.userId,
-    name: req.session.userName,
-    avatar: req.session.userAvatar,
-    role: req.session.userRole || 'admin',
-    guildTeamId: req.session.guildTeamId || null,
-    guildForceId: req.session.guildForceId || null
-  });
+  
+  try {
+    const [users] = await db.query('SELECT is_admin FROM users WHERE id = ?', [req.session.userId]);
+    const isAdmin = users.length > 0 ? users[0].is_admin : 0;
+    
+    res.json({
+      user: {
+        id: req.session.userId,
+        name: req.session.userName,
+        avatar: req.session.userAvatar,
+        role: req.session.userRole || 'admin',
+        is_admin: isAdmin,
+        guildTeamId: req.session.guildTeamId || null,
+        guildForceId: req.session.guildForceId || null
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;

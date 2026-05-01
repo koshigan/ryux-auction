@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const playerRoutes = require('./routes/players');
 const auctionRoutes = require('./routes/auction');
+const forcesRoutes = require('./routes/forces');
 const { attachUser } = require('./middleware/auth');
 const setupAuctionSocket = require('./utils/auctionSocket');
 
@@ -53,11 +54,15 @@ app.use(attachUser);
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Serve uploaded files (logos, images)
+app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+
 // ── API ROUTES ────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/auction', auctionRoutes);
+app.use('/api/forces', forcesRoutes);
 
 // ── PAGE ROUTES (serve HTML files) ───────────────────────
 const pagesDir = path.join(__dirname, '../frontend/pages');
@@ -96,6 +101,10 @@ app.get('/guild-war/force/:id', (req, res) => {
 app.get('/guild-war/progress', (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
   res.sendFile(path.join(pagesDir, 'guild-war-progress.html'));
+});
+app.get('/admin/forces', (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  res.sendFile(path.join(pagesDir, 'admin-forces.html'));
 });
 
 // ── SOCKET.IO AUCTION ENGINE ──────────────────────────────

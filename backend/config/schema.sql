@@ -15,7 +15,22 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(150) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,           -- bcrypt hashed
   avatar VARCHAR(10) DEFAULT '🧑',          -- emoji avatar
+  is_admin TINYINT(1) DEFAULT 0,            -- 1=admin, 0=user
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -------------------------------------------------------
+-- FORCES TABLE: Guilds/Factions with logos
+-- -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS forces (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL UNIQUE,
+  logo_url VARCHAR(500) DEFAULT '',         -- URL or path to logo image
+  description TEXT DEFAULT '',
+  admin_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- -------------------------------------------------------
@@ -118,6 +133,7 @@ CREATE INDEX idx_bids_player ON bids(player_id);
 CREATE INDEX idx_bids_room ON bids(room_id);
 CREATE INDEX idx_teams_room_user ON teams(room_id, user_id);
 CREATE INDEX idx_chat_room ON chat_messages(room_id);
+CREATE INDEX idx_forces_admin ON forces(admin_id);
 
 -- -------------------------------------------------------
 -- SAMPLE DATA (optional - for testing)
