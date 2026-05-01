@@ -207,7 +207,7 @@ async function executeEndRound() {
     });
   });
 
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   renderSessionAccess();
   
@@ -545,7 +545,7 @@ async function clearEditedTeamPicture() {
   const teamId = Number(document.getElementById('edit-team-select')?.value || selectedTeamId);
   const team = guildWarState.teams.find((t) => t.id === teamId) || getSelectedTeam();
   team.imageData = '';
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   renderEditTeamRemovePicBtn(team);
   toast('Team picture removed.', 'success');
@@ -586,7 +586,7 @@ async function editSelectedTeam() {
   const leaderMember = team.members.find((member) => member.role === 'War Leader');
   if (leaderMember) leaderMember.name = leaderName;
 
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast('Team details updated.', 'success');
@@ -595,7 +595,7 @@ async function editSelectedTeam() {
 async function clearSelectedTeamPicture() {
   const team = getSelectedTeam();
   team.imageData = '';
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast('Team picture removed.', 'success');
@@ -691,7 +691,7 @@ async function addPlayerToSelectedTeam() {
   });
   team.status = 'Active';
 
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast(`Player added to ${team.name}.`, 'success');
@@ -750,7 +750,7 @@ async function promoteLeader() {
   });
   team.leaderName = nextLeader.name;
 
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast(`War leader updated for ${team.name}.`, 'success');
@@ -790,7 +790,7 @@ async function setTeamTargets() {
   }
 
   team.members = team.members.map((member) => ({ ...member, targetPoints: value }));
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast(`Target points updated for ${team.name}.`, 'success');
@@ -862,7 +862,7 @@ async function updatePlayerPoints() {
   }
 
   member.achievedPoints = newPoints;
-  await saveGuildWarState();
+  await saveGuildWarState(guildWarState);
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast(`${member.name}'s achieved points updated.`, 'success');
