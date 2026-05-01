@@ -377,7 +377,8 @@
         document.getElementById('forcesList').innerHTML = forces.map(force => `
           <div class="force-card">
             ${force.logo_url ? 
-              `<img src="${force.logo_url}" alt="${force.name}" class="force-logo">` :
+              `<img src="${force.logo_url}" alt="${force.name}" class="force-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+               <div class="force-logo-placeholder" style="display:none">📛</div>` :
               `<div class="force-logo-placeholder">📛</div>`
             }
             <div class="force-name">${force.name}</div>
