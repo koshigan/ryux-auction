@@ -60,6 +60,38 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(pagesDir, 'login.html'));
 });
 
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'dashboard.html'));
+});
+
+app.get('/history', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'history.html'));
+});
+
+app.get('/room', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'room.html'));
+});
+
+app.get('/admin-forces', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'admin-forces.html'));
+});
+
+app.get('/guild-war', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'guild-war.html'));
+});
+
+app.get('/guild-war-force', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'guild-war-force.html'));
+});
+
+app.get('/guild-war-progress', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'guild-war-progress.html'));
+});
+
+app.get('/guild-war-team', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'guild-war-team.html'));
+});
+
 // Socket setup
 setupAuctionSocket(io);
 
