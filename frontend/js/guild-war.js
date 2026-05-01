@@ -732,7 +732,7 @@ function fillLeaderCandidates() {
     : '<option value="">No members in this team</option>';
 }
 
-function promoteLeader() {
+async function promoteLeader() {
   const error = document.getElementById('promote-error');
   const teamId = Number(document.getElementById('promote-team-select').value);
   const playerId = Number(document.getElementById('promote-player-select').value);
@@ -778,7 +778,7 @@ function openSetTargetModal() {
   `);
 }
 
-function setTeamTargets() {
+async function setTeamTargets() {
   const team = getSelectedTeam();
   const value = Number(document.getElementById('team-target-input').value);
   const error = document.getElementById('target-error');
@@ -842,7 +842,7 @@ function syncMemberPointDefaults() {
   document.getElementById('points-value-input').value = selected.dataset.achieved || '0';
 }
 
-function updatePlayerPoints() {
+async function updatePlayerPoints() {
   const team = getSelectedTeam();
   const memberId = Number(document.getElementById('points-player-select').value);
   const newPoints = Number(document.getElementById('points-value-input').value);
