@@ -1,4 +1,4 @@
-// server.js - Main application entry point
+// server.js
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -7,37 +7,33 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 
-// Route imports
+// Routes
 const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const playerRoutes = require('./routes/players');
 const auctionRoutes = require('./routes/auction');
 const forcesRoutes = require('./routes/forces');
+const guildWarRoutes = require('./routes/guildWar');
+
 const { attachUser } = require('./middleware/auth');
 const setupAuctionSocket = require('./utils/auctionSocket');
 
 const app = express();
 const server = http.createServer(app);
+
+// Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || '*',
     credentials: true
   }
 });
 
-// ── JWT / COOKIE SETUP ───────────────────────────────────
 app.set('trust proxy', 1);
 
-// ── MIDDLEWARE ────────────────────────────────────────────
+// Middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow any origin for development, especially useful for mobile testing
-    if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin.match(/^http:\/\/192\.168\./)) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Fallback to allow for now, but in production you'd want process.env.FRONTEND_URL
-    }
-  },
+  origin: true,
   credentials: true
 }));
 app.use(express.json());
@@ -45,60 +41,31 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(attachUser);
 
-// Serve static frontend files
+// Static files
 app.use(express.static(path.join(__dirname, '../frontend')));
-
-// Serve uploaded files (logos, images)
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 
-// ── API ROUTES ────────────────────────────────────────────
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/auction', auctionRoutes);
 app.use('/api/forces', forcesRoutes);
-app.use('/api/guild-war', require('./routes/guildWar'));
+app.use('/api/guild-war', guildWarRoutes);
 
-// ── PAGE ROUTES (serve HTML files) ───────────────────────
+// Pages
 const pagesDir = path.join(__dirname, '../frontend/pages');
 
 app.get('/', (req, res) => {
-  if (res.locals.userId) {
-    const isDirPath = ['war_leader', 'force_captain', 'guild_leader'].includes(res.locals.userRole);
-    return res.redirect(isDirPath ? '/guild-war' : '/dashboard');
-  }
   res.sendFile(path.join(pagesDir, 'login.html'));
 });
 
-app.get('/login', (req, res) => res.sendFile(path.join(pagesDir, 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(pagesDir, 'register.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(pagesDir, 'dashboard.html')));
-app.get('/room/:id', (req, res) => res.sendFile(path.join(pagesDir, 'room.html')));
-app.get('/history', (req, res) => res.sendFile(path.join(pagesDir, 'history.html')));
-app.get('/guild-war', (req, res) => res.sendFile(path.join(pagesDir, 'guild-war.html')));
-app.get('/guild-war/team/:id', (req, res) => res.sendFile(path.join(pagesDir, 'guild-war-team.html')));
-app.get('/guild-war/force/:id', (req, res) => {
-  if (!res.locals.userId) return res.redirect('/login');
-  res.sendFile(path.join(pagesDir, 'guild-war-force.html'));
-});
-app.get('/guild-war/progress', (req, res) => {
-  if (!res.locals.userId) return res.redirect('/login');
-  res.sendFile(path.join(pagesDir, 'guild-war-progress.html'));
-});
-app.get('/admin/forces', (req, res) => {
-  if (!res.locals.userId) return res.redirect('/login');
-  res.sendFile(path.join(pagesDir, 'admin-forces.html'));
-});
-
-// ── SOCKET.IO AUCTION ENGINE ──────────────────────────────
+// Socket setup
 setupAuctionSocket(io);
 
-// ── START SERVER ──────────────────────────────────────────
+// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`\n🚀 Auction Server running at http://localhost:${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  Database: ${process.env.DB_NAME || 'auction_db'}\n`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 });
-
-module.exports = { app, io };
