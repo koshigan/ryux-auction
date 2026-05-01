@@ -1,46 +1,62 @@
-// config/db.js - MySQL database connection pool (Aiven FIXED)
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const DB_NAME = process.env.DB_NAME || 'auction_db';
 
-// Create pool without database first
+// Create pool with database name to ensure all connections use it
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   port: process.env.DB_PORT,
-
+  database: DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-
-  // ✅ FIXED SSL for Aiven
   ssl: {
     rejectUnauthorized: false
   }
 });
 
 // Debug log
-console.log(`📡 Connecting to: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+console.log(`📡 Connecting to: ${process.env.DB_HOST}:${process.env.DB_PORT}/${DB_NAME}`);
 
 // Auto-create database and tables on startup
-(async () => {
+async function initializeDatabase() {
   let conn;
   try {
-    conn = await pool.getConnection();
-    console.log("✅ MySQL connected successfully (Aiven)");
+    // We try to get a connection. If the database doesn't exist, this might fail.
+    // However, on Aiven/Render, the DB_NAME (usually 'defaultdb') usually already exists.
+    try {
+      conn = await pool.getConnection();
+    } catch (err) {
+      if (err.code === 'ER_BAD_DB_ERROR') {
+        console.log(`⚠️ Database ${DB_NAME} not found, attempting to create...`);
+        // Connect without database to create it
+        const tempConn = await mysql.createConnection({
+          host: process.env.DB_HOST,
+          user: process.env.DB_USER,
+          password: process.env.DB_PASS,
+          port: process.env.DB_PORT,
+          ssl: { rejectUnauthorized: false }
+        });
+        await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+        await tempConn.end();
+        console.log(`✅ Database ${DB_NAME} created.`);
+        conn = await pool.getConnection();
+      } else {
+        throw err;
+      }
+    }
+
+    console.log("✅ MySQL connected successfully");
     
-    // Create database if not exists
-    await conn.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    console.log(`✅ Database ${DB_NAME} ready`);
-    
-    // Use the database
+    // Use the database (redundant if pool has it, but safe)
     await conn.query(`USE ${DB_NAME}`);
     
     // Create tables
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS users (
+    const tables = [
+      `CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(150) NOT NULL UNIQUE,
@@ -48,21 +64,13 @@ console.log(`📡 Connecting to: ${process.env.DB_HOST}:${process.env.DB_PORT}/$
         avatar VARCHAR(10) DEFAULT '🧑',
         is_admin TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    console.log('✅ users table ready');
-
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS guild_war_settings (
+      )`,
+      `CREATE TABLE IF NOT EXISTS guild_war_settings (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        state_json TEXT DEFAULT '{}',
+        state_json LONGTEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-    console.log('✅ guild_war_settings table ready');
-
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS rooms (
+      )`,
+      `CREATE TABLE IF NOT EXISTS rooms (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
         room_code VARCHAR(10) NOT NULL UNIQUE,
@@ -72,35 +80,30 @@ console.log(`📡 Connecting to: ${process.env.DB_HOST}:${process.env.DB_PORT}/$
         budget_per_user INT DEFAULT 1000,
         bid_timer INT DEFAULT 30,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    console.log('✅ rooms table ready');
-
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS room_participants (
+      )`,
+      `CREATE TABLE IF NOT EXISTS room_participants (
         id INT AUTO_INCREMENT PRIMARY KEY,
         room_id INT NOT NULL,
         user_id INT NOT NULL,
         budget_remaining INT NOT NULL,
         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY unique_participant (room_id, user_id)
-      )
-    `);
-    console.log('✅ room_participants table ready');
+      )`
+    ];
+
+    for (const sql of tables) {
+      await conn.query(sql);
+    }
     
-    conn.release();
     console.log('🎉 Database setup complete!');
+    conn.release();
   } catch (err) {
-    console.error("❌ MySQL connection failed:", {
-      message: err.message,
-      code: err.code,
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER
-    });
+    console.error("❌ Database initialization failed:", err.message);
     if (conn) conn.release();
   }
-})();
+}
 
-module.exports = pool;
+// Run initialization
+initializeDatabase();
+
+module.exports = pool;
