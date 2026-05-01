@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYUX ESPORTS - Guild War Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .guild-war-page {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .guild-war-page::before,
+    .guild-war-page::after {
+      content: '';
+      position: fixed;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .guild-war-page::before {
+      top: -120px;
+      right: -120px;
+      background: rgba(255, 59, 59, 0.34);
+    }
+    .guild-war-page::after {
+      bottom: -180px;
+      left: -120px;
+      background: rgba(56, 189, 248, 0.18);
+    }
+    .guild-war-page main,
+    .guild-war-page .page-header {
+      position: relative;
+      z-index: 1;
+    }
+    .page-header {
+      padding: 46px 0 26px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255, 59, 59, 0.12), rgba(0, 0, 0, 0));
+    }
+    .header-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+    .hero-card,
+    .logo-card {
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(14, 17, 21, 0.88);
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 38px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+    .hero-card p {
+      max-width: 800px;
+      font-size: 1rem;
+    }
+    .logo-card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .logo-badge {
+      width: 96px;
+      height: 96px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 59, 59, 0.35);
+      background: linear-gradient(180deg, rgba(255, 59, 59, 0.28), rgba(255, 59, 59, 0.06));
+      box-shadow: 0 0 26px rgba(255, 59, 59, 0.22);
+    }
+    .logo-badge svg {
+      width: 58px;
+      height: 58px;
+      fill: #fff;
+    }
+    .quick-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .quick-link {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      padding: 18px;
+      color: var(--text);
+      text-decoration: none;
+      min-height: 116px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    }
+    .quick-link:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: var(--accent);
+      text-decoration: none;
+      box-shadow: var(--shadow), var(--shadow-glow);
+    }
+    .quick-link strong {
+      font-family: var(--font-display);
+      color: #fff;
+      font-size: 0.95rem;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      padding: 28px 0 48px;
+    }
+    .panel {
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(14, 17, 21, 0.9);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .stat-tile {
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+    }
+    .stat-tile strong {
+      display: block;
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      margin-bottom: 6px;
+    }
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .control-actions,
+    .report-actions,
+    .role-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .force-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .force-card {
+      position: relative;
+      min-height: 164px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(135deg, rgba(255, 59, 59, 0.12), rgba(56, 189, 248, 0.04)),
+        rgba(17, 20, 25, 0.96);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+    .force-card:hover,
+    .force-card.selected {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: var(--shadow), var(--shadow-glow);
+    }
+    .force-card.restricted {
+      opacity: 0.45;
+      filter: grayscale(0.35);
+    }
+    .force-card h3 {
+      margin: 12px 0 8px;
+    }
+    .force-card strong {
+      color: #fff;
+      display: block;
+      font-size: 1.25rem;
+      margin-top: 12px;
+    }
+    .team-card {
+      position: relative;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 59, 59, 0.06), rgba(255,255,255,0.02)),
+        rgba(17, 20, 25, 0.96);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+    .team-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.04), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+    .team-card:hover,
+    .team-card.selected {
+      border-color: var(--accent);
+      box-shadow: var(--shadow), var(--shadow-glow);
+      transform: translateY(-5px) scale(1.01);
+    }
+    .team-card:hover::before,
+    .team-card.selected::before {
+      transform: translateX(100%);
+    }
+    .team-card.restricted {
+      opacity: 0.42;
+      filter: grayscale(0.3);
+    }
+    .team-card h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    .team-card-image,
+    .detail-team-image {
+      width: 100%;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at top, rgba(255, 59, 59, 0.2), transparent 62%),
+        rgba(255,255,255,0.03);
+    }
+    .team-card-image {
+      aspect-ratio: 16 / 10;
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+    .detail-team-image {
+      aspect-ratio: 16 / 9;
+      border-radius: 18px;
+      margin-bottom: 18px;
+    }
+    .team-card-image img,
+    .detail-team-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .team-card-image span,
+    .detail-team-image span {
+      font-family: var(--font-display);
+      color: #fff;
+      text-shadow: 0 0 20px rgba(255, 59, 59, 0.45);
+    }
+    .team-card-image span {
+      font-size: 2rem;
+    }
+    .detail-team-image span {
+      font-size: 3rem;
+    }
+    .team-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .team-card p {
+      margin-bottom: 4px;
+    }
+    .team-card .badge {
+      margin-bottom: 10px;
+    }
+    .team-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .side-stack {
+      display: grid;
+      gap: 20px;
+    }
+    .access-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 59, 59, 0.12);
+      border: 1px solid rgba(255, 59, 59, 0.24);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.8rem;
+    }
+    .detail-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .detail-stat {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .detail-stat strong {
+      display: block;
+      color: #fff;
+      margin-top: 4px;
+      font-size: 1.12rem;
+    }
+    .player-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .member-chart {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: minmax(88px, 0.8fr) minmax(160px, 1.2fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .chart-name {
+      color: #fff;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chart-track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .chart-fill {
+      height: 100%;
+      min-width: 4px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent3));
+      box-shadow: 0 0 16px rgba(255, 59, 59, 0.28);
+    }
+    .chart-value {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+    .player-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+    }
+    .player-row.low-points {
+      border-color: rgba(255, 107, 107, 0.4);
+      box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.12);
+    }
+    .player-row strong {
+      color: #fff;
+      display: block;
+    }
+    .report-actions .btn,
+    .control-actions .btn,
+    .role-controls .btn {
+      min-width: 132px;
+    }
+    .report-actions {
+      margin-top: 16px;
+    }
+    .selector-card {
+      display: grid;
+      gap: 14px;
+    }
+    .selector-card .form-group {
+      margin-bottom: 0;
+    }
+    .hint-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .hint-list div {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-muted);
+    }
+    .report-note {
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 1100px) {
+      .main-grid,
+      .header-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 900px) {
+      .quick-nav,
+      .force-grid,
+      .team-grid,
+      .stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 620px) {
+      .quick-nav,
+      .force-grid,
+      .team-grid,
+      .stats-row,
+      .detail-meta {
+        grid-template-columns: 1fr;
+      }
+      .chart-row {
+        grid-template-columns: 1fr;
+      }
+      .player-row {
+        grid-template-columns: 1fr;
+        justify-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="guild-war-page">
+
+
+    <main>
+      <div class="container">
+        <div class="main-grid">
+          <section class="panel">
+            <div class="stats-row">
+              <div class="stat-tile">
+                <span>Total Teams</span>
+                <strong id="total-teams">0</strong>
+              </div>
+              <div class="stat-tile">
+                <span>Total Players</span>
+                <strong id="total-players">0</strong>
+              </div>
+              <div class="stat-tile">
+                <span>Active Wars</span>
+                <strong id="active-wars">0</strong>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div>
+                <h2>Team Management</h2>
+                <p id="force-flow-copy">Select a force first, then open its teams and full-screen stats.</p>
+              </div>
+              <div class="control-actions" id="admin-actions">
+                <button class="btn btn-primary" onclick="openCreateTeamModal()">Create Team</button>
+                <button class="btn btn-secondary" onclick="openEditTeamModal()">Edit Team</button>
+                <button class="btn btn-secondary" onclick="openPromoteLeaderModal()">Promote Leader</button>
+                <button class="btn btn-secondary" onclick="openSetTargetModal()">Set Targets</button>
+                <button class="btn btn-secondary" onclick="openAddPlayerModal()">Add Player</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="role-controls">
+                <span class="access-chip" id="session-role-chip">Admin Access</span>
+                <span class="badge badge-muted" id="session-team-chip">All Teams</span>
+                <span class="badge badge-blue" id="total-progress-chip" style="display:none; cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='/guild-war/progress'" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Progress: 0 / 0</span>
+                <span class="badge badge-gold" id="round-info-chip">Round 1 (Ends Sun 11PM)</span>
+              </div>
+              <div class="report-actions">
+                <button class="btn btn-secondary" onclick="exportReport('word')">Export Word</button>
+                <button class="btn btn-secondary" onclick="exportReport('pdf')">Export PDF</button>
+                <button class="btn btn-secondary" onclick="exportReport('excel')">Export Excel</button>
+              </div>
+            </div>
+
+            <div class="force-grid" id="force-grid"></div>
+
+
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/guild-war.js"></script>
+</body>
+</html>

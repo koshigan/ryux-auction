@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BidStorm – Auction Room</title>
+  <meta name="description" content="Live auction room with real-time bidding">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    main { padding: 24px 0 40px; }
+    .room-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+    .room-layout-left { display: flex; flex-direction: column; gap: 20px; }
+    .room-layout-right { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 80px; }
+
+    /* Room header bar */
+    .room-header-bar {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+    .room-header-left { display: flex; align-items: center; gap: 12px; }
+    .room-title-big { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; }
+    .host-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Auction stage */
+    .stage-idle { padding: 60px; }
+    .stage-idle .empty-icon { font-size: 4rem; }
+    .current-bid-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 4px; }
+    .highest-bidder {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; font-size: 0.95rem; color: var(--text-muted); margin-top: 8px;
+    }
+    .highest-bidder .name { font-weight: 700; color: var(--text); }
+    .bid-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .quick-bid-btn {
+      background: var(--bg-input); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--radius-sm);
+      padding: 8px 16px; cursor: pointer; font-family: var(--font-body);
+      font-size: 0.85rem; font-weight: 600; transition: all var(--transition);
+    }
+    .quick-bid-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .quick-bid-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .custom-bid-row { display: flex; gap: 8px; margin-top: 12px; justify-content: center; }
+    .custom-bid-row input { width: 140px; text-align: center; font-size: 1.1rem; font-weight: 700; }
+
+    /* ── PLAYER CARDS GRID (new!) ──────────────────────────── */
+    .players-section { display: flex; flex-direction: column; gap: 16px; }
+    .players-view-toggle { display: flex; gap: 8px; align-items: center; }
+    .view-btn {
+      padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: none; color: var(--text-muted); cursor: pointer;
+      font-size: 0.8rem; font-weight: 600; transition: all var(--transition);
+    }
+    .view-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    /* Card grid view */
+    .player-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .player-card-item {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all var(--transition);
+      position: relative;
+      cursor: default;
+    }
+    .player-card-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border-active); }
+    .player-card-item.active-card { border-color: var(--accent); box-shadow: 0 0 16px rgba(240,165,0,0.25); }
+    .player-card-item.sold-card { opacity: 0.5; }
+    .player-card-item.unsold-card { opacity: 0.4; }
+
+    .player-card-img {
+      width: 100%; aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-input));
+      font-size: 3.5rem; overflow: hidden; position: relative;
+    }
+    .player-card-img img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .player-card-status-badge {
+      position: absolute; top: 6px; right: 6px;
+      padding: 2px 7px; border-radius: 100px; font-size: 0.68rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .status-active-badge { background: rgba(240,165,0,0.9); color: #000; }
+    .status-sold-badge { background: rgba(34,197,94,0.9); color: #000; }
+    .status-unsold-badge { background: rgba(224,64,64,0.85); color: #fff; }
+    .status-pending-badge { background: rgba(255,255,255,0.12); color: var(--text-muted); }
+
+    .player-card-body { padding: 10px; }
+    .player-card-pos {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent); margin-bottom: 3px;
+    }
+    .player-card-name { font-weight: 700; font-size: 0.88rem; line-height: 1.2; margin-bottom: 4px; }
+    .player-card-price { font-size: 0.82rem; color: var(--text-muted); }
+    .player-card-price strong { color: var(--accent); }
+
+    .player-card-sold-info {
+      font-size: 0.72rem; color: var(--accent3); font-weight: 600; margin-top: 4px;
+    }
+    .player-card-host-del {
+      position: absolute; top: 6px; left: 6px;
+      background: rgba(0,0,0,0.6); border: none; border-radius: 50%;
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.7rem; transition: all var(--transition);
+      color: #fff;
+    }
+    .player-card-host-del:hover { background: var(--accent2); }
+
+    /* List view (old queue) */
+    .player-list-view { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+    .queue-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; background: var(--bg-input);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      font-size: 0.88rem; transition: all var(--transition);
+    }
+    .queue-item.active-player { border-color: var(--accent); background: var(--accent-dim); }
+    .queue-item.sold-player { opacity: 0.5; text-decoration: line-through; }
+    .queue-num { font-weight: 900; color: var(--text-muted); min-width: 20px; font-family: var(--font-display); }
+    .queue-name { flex: 1; font-weight: 600; }
+    .queue-cat { color: var(--text-muted); font-size: 0.8rem; }
+    .queue-price { color: var(--accent); font-weight: 700; }
+
+    /* Sold overlay */
+    .sold-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 300; flex-direction: column; gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+    .sold-overlay h2 { font-family: var(--font-display); font-size: 3rem; color: var(--accent3); }
+    .sold-overlay .sold-player-name { font-size: 1.5rem; font-weight: 700; }
+    .sold-overlay .sold-details { color: var(--text-muted); font-size: 1.1rem; }
+    .sold-hammer { font-size: 5rem; animation: hammerDrop 0.5s ease; }
+    @keyframes hammerDrop { 0% { transform: rotate(-60deg) scale(1.5); } 100% { transform: rotate(0) scale(1); } }
+
+    /* Add player form */
+    .add-player-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .add-player-form .form-group { margin-bottom: 0; }
+    .add-player-form .full-width { grid-column: 1 / -1; }
+
+    /* Players tab in add section */
+    .player-pos-select { appearance: none; }
+
+    /* Participants */
+    .participant-online { width: 8px; height: 8px; border-radius: 50%; background: var(--accent3); display: inline-block; flex-shrink: 0; }
+
+    @media (max-width: 900px) {
+      .room-layout { grid-template-columns: 1fr; }
+      .room-layout-right { position: static; }
+      .player-cards-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <main>
+    <div class="container">
+      <!-- Room header -->
+      <div class="room-header-bar mb-16" id="room-header">
+        <div class="loading"><div class="spinner"></div> Loading room...</div>
+      </div>
+
+      <div class="room-layout">
+        <!-- LEFT COLUMN -->
+        <div class="room-layout-left">
+
+          <!-- AUCTION STAGE -->
+          <div class="card auction-stage" id="auction-stage">
+            <div class="stage-idle text-center">
+              <div class="empty-icon">🏟️</div>
+              <h3 style="margin-top:12px">Auction Not Started</h3>
+              <p>Waiting for the host to start the auction...</p>
+            </div>
+          </div>
+
+          <!-- PLAYER CARDS / QUEUE -->
+          <div class="card players-section">
+            <div class="card-header">
+              <div style="display:flex; align-items:center; gap:12px">
+                <h3>Players</h3>
+                <span id="player-count-badge" class="badge badge-muted">0</span>
+              </div>
+              <div class="players-view-toggle">
+                <button class="view-btn active" id="btn-card-view" onclick="setView('card')" title="Card View">⊞ Cards</button>
+                <button class="view-btn" id="btn-list-view" onclick="setView('list')" title="List View">☰ List</button>
+              </div>
+            </div>
+
+            <!-- Card grid view -->
+            <div class="player-cards-grid" id="player-cards-grid">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <!-- List view (hidden by default) -->
+            <div class="player-list-view" id="player-list-view" style="display:none">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+
+            <!-- Host: Add player -->
+            <div id="add-player-section" style="display:none">
+              <hr class="divider">
+              <h3 class="mb-16">➕ Add Player</h3>
+              <div class="add-player-form">
+                <div class="form-group">
+                  <label class="form-label">Name *</label>
+                  <input type="text" id="p-name" class="form-input" placeholder="Player name">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Position / Role</label>
+                  <select id="p-cat" class="form-select player-pos-select">
+                    <option value="Batsman">🏏 Batsman</option>
+                    <option value="Bowler">🎯 Bowler</option>
+                    <option value="All-rounder">⚡ All-rounder</option>
+                    <option value="Wicketkeeper">🧤 Wicketkeeper</option>
+                    <option value="Captain">👑 Captain</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Base Price 🪙</label>
+                  <input type="number" id="p-price" class="form-input" value="50" min="1">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Photo URL (optional)</label>
+                  <input type="text" id="p-img" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-group full-width">
+                  <div class="flex gap-8" style="flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="addPlayer()">Add Player</button>
+                    <label class="btn btn-secondary" style="cursor:pointer">
+                      📁 Import CSV
+                      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="uploadCSV(this)">
+                    </label>
+                    <span class="form-hint" style="align-self:center">CSV: name, category, base_price, image_url</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BID HISTORY -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚡ Recent Bids</h3>
+            </div>
+            <div class="bid-feed" id="bid-feed">
+              <div class="empty-state" style="padding:20px"><p>No bids yet</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="room-layout-right">
+
+          <!-- Room code -->
+          <div class="card">
+            <div class="card-header"><h3>Room Code</h3></div>
+            <div class="room-code" id="room-code-display" onclick="copyRoomCode()">------</div>
+            <p class="form-hint text-center mt-8">Click to copy &amp; share with friends</p>
+          </div>
+
+          <!-- Participants / Leaderboard -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Participants</h3>
+              <button class="btn btn-ghost btn-sm" onclick="refreshLeaderboard()">↻</button>
+            </div>
+            <div id="participants-list">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Chat -->
+          <div class="card">
+            <div class="card-header"><h3>💬 Room Chat</h3></div>
+            <div class="chat-box">
+              <div class="chat-messages" id="chat-messages"></div>
+              <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Say something..." maxlength="200">
+                <button class="btn btn-primary btn-sm" onclick="sendChat()">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SOLD OVERLAY -->
+  <div class="sold-overlay" id="sold-overlay" style="display:none">
+    <div class="sold-hammer">🔨</div>
+    <h2>SOLD!</h2>
+    <div class="sold-player-name" id="sold-player-name"></div>
+    <div class="sold-details" id="sold-details"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    // ── STATE ──────────────────────────────────────────────
+    let currentUser = null;
+    let roomData = null;
+    let socket = null;
+    let roomId = null;
+    let isHost = false;
+    let timerInterval = null;
+    let currentTimerMax = 30;
+    let currentBid = 0;
+    let currentPlayerId = null;
+    let currentView = 'card'; // 'card' | 'list'
+
+    // ── INIT ───────────────────────────────────────────────
+    async function init() {
+      currentUser = await requireLogin();
+      if (!currentUser) return;
+
+      roomId = window.location.pathname.split('/').pop();
+
+      try {
+        roomData = await api.get(`/api/rooms/${roomId}`);
+        isHost = roomData.isHost;
+        buildNavbar(currentUser);
+        renderRoomHeader();
+        renderPlayers(roomData.players);
+        renderParticipants(roomData.participants);
+
+        if (isHost) {
+          document.getElementById('add-player-section').style.display = 'block';
+        }
+
+        loadChatHistory();
+        connectSocket();
+      } catch (err) {
+        toast(err.message, 'error');
+        setTimeout(() => window.location.href = '/dashboard', 2000);
+      }
+    }
+
+    // ── VIEW TOGGLE ────────────────────────────────────────
+    function setView(v) {
+      currentView = v;
+      document.getElementById('btn-card-view').classList.toggle('active', v === 'card');
+      document.getElementById('btn-list-view').classList.toggle('active', v === 'list');
+      document.getElementById('player-cards-grid').style.display = v === 'card' ? 'grid' : 'none';
+      document.getElementById('player-list-view').style.display = v === 'list' ? 'flex' : 'none';
+    }
+
+    // ── RENDER ROOM HEADER ─────────────────────────────────
+    function renderRoomHeader() {
+      const room = roomData.room;
+      const hostControls = isHost ? `
+        <div class="host-controls">
+          <button class="btn btn-primary btn-sm" id="start-btn" onclick="startAuction()">▶ Start Auction</button>
+          <button class="btn btn-secondary btn-sm" id="pause-btn" onclick="pauseAuction()" style="display:none">⏸ Pause</button>
+          <button class="btn btn-secondary btn-sm" id="skip-btn" onclick="skipPlayer()" style="display:none">⏭ Skip</button>
+          <button class="btn btn-danger btn-sm" onclick="endAuction()">⏹ End</button>
+        </div>` : '';
+
+      document.getElementById('room-header').innerHTML = `
+        <div class="room-header-left">
+          <span class="status-dot ${room.status}"></span>
+          <span class="room-title-big">${escHtml(room.name)}</span>
+          <span class="badge ${statusBadge(room.status)}">${room.status.toUpperCase()}</span>
+          <span class="badge badge-muted">🪙 ${room.budget_per_user} budget</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          ${hostControls}
+          <a href="/dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        </div>`;
+
+      document.getElementById('room-code-display').textContent = room.room_code;
+    }
+
+    // ── CONNECT SOCKET ─────────────────────────────────────
+    function connectSocket() {
+      socket = io({ withCredentials: true });
+
+      socket.on('connect', () => {
+        socket.emit('join_room', { roomId });
+        console.log('✅ Socket connected');
+      });
+
+      socket.on('error', ({ message }) => toast(message, 'error'));
+
+      socket.on('user_joined', ({ userName }) => {
+        toast(`${userName} joined the room`, 'info');
+        refreshLeaderboard();
+      });
+
+      socket.on('user_left', ({ userName }) => {
+        toast(`${userName} left the room`, 'info');
+        refreshLeaderboard();
+      });
+
+      socket.on('player_up', ({ player, timerSeconds }) => {
+        currentPlayerId = player.id;
+        currentBid = player.base_price;
+        currentTimerMax = timerSeconds;
+        renderAuctionStage(player, player.base_price, null, null);
+        startVisualTimer(timerSeconds, timerSeconds);
+        markPlayerActive(player.id);
+        toast(`🎯 Now bidding: ${player.name}`, 'info');
+        if (isHost) {
+          document.getElementById('skip-btn').style.display = '';
+          document.getElementById('pause-btn').style.display = '';
+        }
+      });
+
+      socket.on('new_bid', ({ amount, bidderId, bidderName, bidderAvatar, playerId }) => {
+        currentBid = amount;
+        updateBidDisplay(amount, bidderId, bidderName, bidderAvatar);
+        addBidFeedItem(amount, bidderName, bidderAvatar);
+        playBidSound();
+        const stage = document.getElementById('auction-stage');
+        stage.classList.add('sold-flash');
+        setTimeout(() => stage.classList.remove('sold-flash'), 800);
+      });
+
+      socket.on('timer_tick', ({ seconds }) => updateTimerDisplay(seconds));
+
+      socket.on('player_sold', ({ playerId, playerName, soldTo, soldToName, price }) => {
+        clearVisualTimer();
+        showSoldOverlay(playerName, soldToName, price);
+        playSoldSound();
+        markPlayerSold(playerId, soldTo, soldToName, price);
+        setTimeout(refreshLeaderboard, 1000);
+        refreshPlayersFromServer();
+      });
+
+      socket.on('player_unsold', ({ playerId }) => {
+        clearVisualTimer();
+        toast('⏱ No bids — player passed!', 'info');
+        markPlayerUnsold(playerId);
+        refreshPlayersFromServer();
+      });
+
+      socket.on('player_skipped', ({ playerId }) => {
+        clearVisualTimer();
+        toast('⏭ Player skipped', 'info');
+        markPlayerUnsold(playerId);
+        refreshPlayersFromServer();
+      });
+
+      socket.on('auction_paused', () => {
+        toast('⏸ Auction paused by host', 'info');
+        if (isHost) document.getElementById('pause-btn').textContent = '▶ Resume';
+      });
+
+      socket.on('auction_resumed', () => {
+        toast('▶ Auction resumed!', 'success');
+        if (isHost) document.getElementById('pause-btn').textContent = '⏸ Pause';
+      });
+
+      socket.on('auction_ended', () => {
+        clearVisualTimer();
+        toast('🏁 Auction has ended!', 'info');
+        document.getElementById('auction-stage').innerHTML = `
+          <div class="text-center" style="padding:40px">
+            <div style="font-size:3rem">🏆</div>
+            <h2 class="mt-16">Auction Complete!</h2>
+            <p>Check the leaderboard to see final standings.</p>
+            <a href="/history" class="btn btn-primary mt-16">View History</a>
+          </div>`;
+        refreshLeaderboard();
+        refreshPlayersFromServer();
+      });
+
+      socket.on('auction_state', (state) => {
+        if (state.status === 'bidding') {
+          currentPlayerId = state.currentPlayerId;
+          currentBid = state.currentBid;
+          renderAuctionStage(
+            { id: state.currentPlayerId, name: state.currentPlayerName, category: state.currentPlayerCategory, image_url: state.currentPlayerImage, base_price: state.basePrice },
+            state.currentBid, state.highestBidderId, state.highestBidderName
+          );
+          startVisualTimer(state.timerSeconds, state.timerSeconds);
+        }
+      });
+
+      socket.on('chat_message', ({ userName, avatar, message }) => {
+        addChatMessage(userName, avatar, message);
+      });
+
+      // When a new player is added by host, refresh player list for everyone
+      socket.on('player_added', () => refreshPlayersFromServer());
+    }
+
+    // ── REFRESH PLAYERS FROM SERVER ────────────────────────
+    async function refreshPlayersFromServer() {
+      try {
+        const updated = await api.get(`/api/rooms/${roomId}`);
+        roomData.players = updated.players;
+        renderPlayers(updated.players);
+      } catch (e) { /* ignore */ }
+    }
+
+    function getMinIncrement(currentBid) {
+      if (currentBid >= 1000) return 100;
+      if (currentBid >= 500) return 50;
+      if (currentBid >= 100) return 10;
+      return 5;
+    }
+
+    // ── AUCTION STAGE RENDER ───────────────────────────────
+    function renderAuctionStage(player, bid, highestBidderId, highestBidderName) {
+      const myBudget = roomData.myBudget;
+      const isMyBid = highestBidderId === currentUser.id;
+      const imgHtml = player.image_url
+        ? `<img src="${escHtml(player.image_url)}" alt="${escHtml(player.name)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.parentElement.innerHTML+='🏏'">`
+        : '🏏';
+
+      const inc = getMinIncrement(bid);
+      const quickBids = [bid + inc, bid + inc*2, bid + inc*3, bid + inc*5];
+
+      document.getElementById('auction-stage').innerHTML = `
+        <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center">
+          <div>
+            <div class="current-player-img">${imgHtml}</div>
+          </div>
+          <div style="flex:1; min-width:200px; text-align:left">
+            <div class="badge badge-blue mb-8">${escHtml(positionIcon(player.category))} ${escHtml(player.category || 'General')}</div>
+            <h2 style="margin-bottom:4px">${escHtml(player.name)}</h2>
+            <div style="color:var(--text-muted); font-size:0.85rem">Base Price: 🪙${player.base_price}</div>
+          </div>
+          <div style="text-align:center">
+            <div class="timer-ring" id="timer-ring">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle class="track" cx="40" cy="40" r="36"/>
+                <circle class="progress" id="timer-progress" cx="40" cy="40" r="36"
+                  stroke-dasharray="226" stroke-dashoffset="0"/>
+              </svg>
+              <div class="timer-number" id="timer-number">--</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="text-center">
+          <div id="warning-msg" style="color: var(--accent3); font-weight: bold; font-size: 1.2rem; min-height: 1.5rem; margin-bottom: 8px;"></div>
+          <div class="current-bid-label">Current Bid</div>
+          <div class="current-bid-display" id="current-bid">🪙${bid}</div>
+          <div class="highest-bidder" id="highest-bidder">
+            ${highestBidderId
+              ? `<span>${isMyBid ? '👑 You are the highest bidder!' : `Highest: <span class="name">${escHtml(highestBidderName)}</span>`}</span>`
+              : '<span>No bids yet — be the first!</span>'}
+          </div>
+        </div>
+
+        <div class="bid-actions">
+          ${quickBids.map(b => `<button class="quick-bid-btn" onclick="placeBid(${b})" ${b > myBudget ? 'disabled' : ''}>+${b - bid} → 🪙${b}</button>`).join('')}
+        </div>
+        <div class="custom-bid-row">
+          <input type="number" id="custom-bid" class="form-input" placeholder="Min 🪙${bid + inc}" min="${bid + inc}" step="${inc}">
+          <button class="btn btn-primary" onclick="placeCustomBid()">Bid</button>
+        </div>
+        <div style="text-align:center; margin-top:8px; font-size:0.8rem; color:var(--text-muted)">
+          Your budget: <strong style="color:var(--accent)">🪙${myBudget}</strong>
+        </div>`;
+    }
+
+    function positionIcon(cat) {
+      const icons = { Batsman: '🏏', Bowler: '🎯', 'All-rounder': '⚡', Wicketkeeper: '🧤', Captain: '👑' };
+      return icons[cat] || '';
+    }
+
+    function updateBidDisplay(amount, bidderId, bidderName, bidderAvatar) {
+      const el = document.getElementById('current-bid');
+      if (el) {
+        el.textContent = `🪙${amount}`;
+        el.style.animation = 'none';
+        el.offsetHeight;
+        el.style.animation = 'pulseBid 0.4s ease';
+      }
+      const hb = document.getElementById('highest-bidder');
+      if (hb) {
+        const isMe = bidderId === currentUser.id;
+        hb.innerHTML = `<span>${isMe ? `👑 You are the highest bidder!` : `${bidderAvatar || '🧑'} Highest: <span class="name">${escHtml(bidderName)}</span>`}</span>`;
+      }
+      const myBudget = roomData.myBudget;
+      const inc = getMinIncrement(amount);
+      const quickBids = [amount + inc, amount + inc*2, amount + inc*3, amount + inc*5];
+      const btns = document.querySelectorAll('.quick-bid-btn');
+      btns.forEach((btn, i) => {
+        const b = quickBids[i];
+        btn.textContent = `+${b - amount} → 🪙${b}`;
+        btn.onclick = () => placeBid(b);
+        btn.disabled = b > myBudget;
+      });
+
+      const customInput = document.getElementById('custom-bid');
+      if (customInput) {
+        customInput.min = amount + inc;
+        customInput.step = inc;
+        customInput.placeholder = `Min 🪙${amount + inc}`;
+      }
+    }
+
+    // ── TIMER ──────────────────────────────────────────────
+    function startVisualTimer(seconds, max) {
+      clearVisualTimer();
+      updateTimerDisplay(seconds, max);
+    }
+
+    function updateTimerDisplay(seconds, max = currentTimerMax) {
+      const numEl = document.getElementById('timer-number');
+      const prog = document.getElementById('timer-progress');
+      const ring = document.getElementById('timer-ring');
+      if (!numEl) return;
+      numEl.textContent = seconds;
+      const circumference = 226;
+      const offset = circumference - (seconds / max) * circumference;
+      if (prog) prog.style.strokeDashoffset = offset;
+      if (ring) ring.classList.toggle('urgent', seconds <= 10);
+
+      const warningEl = document.getElementById('warning-msg');
+      const highestBidderEl = document.getElementById('highest-bidder');
+      if (warningEl && highestBidderEl && highestBidderEl.textContent.trim() !== 'No bids yet — be the first!') {
+        if (seconds === 5 || seconds === 4) warningEl.textContent = "Going Once!";
+        else if (seconds === 3 || seconds === 2) warningEl.textContent = "Going Twice!";
+        else if (seconds === 1) warningEl.textContent = "Final Call!";
+        else warningEl.textContent = "";
+      } else if (warningEl) {
+        warningEl.textContent = "";
+      }
+    }
+
+    function clearVisualTimer() {
+      clearInterval(timerInterval);
+      const numEl = document.getElementById('timer-number');
+      if (numEl) numEl.textContent = '0';
+    }
+
+    // ── BIDDING ────────────────────────────────────────────
+    function placeBid(amount) {
+      if (!socket || !currentPlayerId) { toast('No active auction', 'error'); return; }
+      socket.emit('place_bid', { roomId, amount });
+    }
+
+    function placeCustomBid() {
+      const val = parseInt(document.getElementById('custom-bid')?.value);
+      if (!val || val <= 0) { toast('Enter a valid amount', 'error'); return; }
+      placeBid(val);
+    }
+
+    // ── HOST CONTROLS ──────────────────────────────────────
+    function startAuction() { socket.emit('start_auction', { roomId }); }
+    function skipPlayer() { socket.emit('skip_player', { roomId }); }
+    function pauseAuction() { socket.emit('pause_auction', { roomId }); }
+    function endAuction() {
+      if (!confirm('End the auction for everyone?')) return;
+      socket.emit('end_auction', { roomId });
+    }
+
+    // ── SOLD OVERLAY ───────────────────────────────────────
+    function showSoldOverlay(playerName, buyerName, price) {
+      document.getElementById('sold-player-name').textContent = playerName;
+      document.getElementById('sold-details').textContent = `Bought by ${buyerName} for 🪙${price}`;
+      const overlay = document.getElementById('sold-overlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.style.display = 'none', 4000);
+    }
+
+    // ── PLAYER RENDER (CARDS + LIST) ───────────────────────
+    function renderPlayers(players) {
+      const badge = document.getElementById('player-count-badge');
+      badge.textContent = `${players.length} players`;
+
+      renderPlayerCards(players);
+      renderPlayerList(players);
+    }
+
+    function renderPlayerCards(players) {
+      const grid = document.getElementById('player-cards-grid');
+      if (players.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1; padding:30px"><p>No players added yet</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = players.map(p => {
+        let cardClass = '';
+        let statusBadgeHtml = '';
+        if (p.status === 'active') { cardClass = 'active-card'; statusBadgeHtml = `<span class="player-card-status-badge status-active-badge">LIVE</span>`; }
+        else if (p.status === 'sold') { cardClass = 'sold-card'; statusBadgeHtml = `<span class="player-card-status-badge status-sold-badge">SOLD</span>`; }
+        else if (p.status === 'unsold') { cardClass = 'unsold-card'; statusBadgeHtml = `<span class="player-card-status-badge status-unsold-badge">UNSOLD</span>`; }
+        else { statusBadgeHtml = `<span class="player-card-status-badge status-pending-badge">PENDING</span>`; }
+
+        const imgContent = p.image_url
+          ? `<img src="${escHtml(p.image_url)}" alt="${escHtml(p.name)}" onerror="this.style.display='none';this.parentElement.insertAdjacentText('beforeend','${positionEmoji(p.category)}')">`
+          : positionEmoji(p.category);
+
+        const soldInfo = p.status === 'sold' && p.sold_to_name
+          ? `<div class="player-card-sold-info">✅ ${escHtml(p.sold_to_name)} • 🪙${p.sold_price}</div>` : '';
+
+        const hostDel = isHost && p.status === 'pending'
+          ? `<button class="player-card-host-del" onclick="deletePlayer(${p.id}, event)" title="Delete">🗑</button>` : '';
+
+        return `
+          <div class="player-card-item ${cardClass}" id="card-${p.id}">
+            <div class="player-card-img">
+              ${imgContent}
+              ${statusBadgeHtml}
+              ${hostDel}
+            </div>
+            <div class="player-card-body">
+              <div class="player-card-pos">${positionIcon(p.category)} ${escHtml(p.category || 'General')}</div>
+              <div class="player-card-name">${escHtml(p.name)}</div>
+              <div class="player-card-price">Base: <strong>🪙${p.base_price}</strong></div>
+              ${soldInfo}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function positionEmoji(cat) {
+      const emojis = { Batsman: '🏏', Bowler: '🎯', 'All-rounder': '⚡', Wicketkeeper: '🧤', Captain: '👑' };
+      return emojis[cat] || '⚽';
+    }
+
+    function renderPlayerList(players) {
+      const list = document.getElementById('player-list-view');
+      if (players.length === 0) {
+        list.innerHTML = `<div class="empty-state" style="padding:20px"><p>No players added yet</p></div>`;
+        return;
+      }
+      list.innerHTML = players.map((p, i) => {
+        let cls = '';
+        if (p.status === 'active') cls = 'active-player';
+        if (p.status === 'sold' || p.status === 'unsold') cls = 'sold-player';
+        const statusIcon = { pending: '⏳', active: '🔴', sold: '✅', unsold: '❌' }[p.status] || '';
+        const hostEdit = isHost && p.status === 'pending'
+          ? `<button class="btn btn-ghost btn-sm" onclick="deletePlayer(${p.id}, event)" title="Delete">🗑</button>` : '';
+        return `
+          <div class="queue-item ${cls}" id="queue-${p.id}">
+            <span class="queue-num">${i + 1}</span>
+            <span class="queue-name">${escHtml(p.name)}</span>
+            <span class="queue-cat">${positionIcon(p.category)} ${escHtml(p.category)}</span>
+            <span class="queue-price">🪙${p.base_price}</span>
+            <span>${statusIcon}</span>
+            ${hostEdit}
+          </div>`;
+      }).join('');
+    }
+
+    function markPlayerActive(playerId) {
+      // Cards
+      document.querySelectorAll('.player-card-item').forEach(el => {
+        el.classList.remove('active-card');
+        const badge = el.querySelector('.player-card-status-badge');
+        if (badge && badge.classList.contains('status-active-badge')) {
+          badge.className = 'player-card-status-badge status-pending-badge';
+          badge.textContent = 'PENDING';
+        }
+      });
+      const card = document.getElementById(`card-${playerId}`);
+      if (card) {
+        card.classList.add('active-card');
+        const badge = card.querySelector('.player-card-status-badge');
+        if (badge) { badge.className = 'player-card-status-badge status-active-badge'; badge.textContent = 'LIVE'; }
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      // List
+      document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active-player'));
+      document.getElementById(`queue-${playerId}`)?.classList.add('active-player');
+    }
+
+    function markPlayerSold(playerId, soldToId, soldToName, price) {
+      // Card
+      const card = document.getElementById(`card-${playerId}`);
+      if (card) {
+        card.classList.remove('active-card');
+        card.classList.add('sold-card');
+        const badge = card.querySelector('.player-card-status-badge');
+        if (badge) { badge.className = 'player-card-status-badge status-sold-badge'; badge.textContent = 'SOLD'; }
+        const body = card.querySelector('.player-card-body');
+        if (body && !body.querySelector('.player-card-sold-info')) {
+          const div = document.createElement('div');
+          div.className = 'player-card-sold-info';
+          div.textContent = `✅ ${soldToName} • 🪙${price}`;
+          body.appendChild(div);
+        }
+      }
+      // List
+      const el = document.getElementById(`queue-${playerId}`);
+      if (el) { el.classList.add('sold-player'); el.classList.remove('active-player'); }
+    }
+
+    function markPlayerUnsold(playerId) {
+      // Card
+      const card = document.getElementById(`card-${playerId}`);
+      if (card) {
+        card.classList.remove('active-card');
+        card.classList.add('unsold-card');
+        const badge = card.querySelector('.player-card-status-badge');
+        if (badge) { badge.className = 'player-card-status-badge status-unsold-badge'; badge.textContent = 'UNSOLD'; }
+      }
+      // List
+      const el = document.getElementById(`queue-${playerId}`);
+      if (el) { el.classList.add('sold-player'); el.classList.remove('active-player'); }
+    }
+
+    // ── ADD/DELETE PLAYERS ─────────────────────────────────
+    async function addPlayer() {
+      const name = document.getElementById('p-name').value.trim();
+      const category = document.getElementById('p-cat').value;
+      const base_price = parseInt(document.getElementById('p-price').value) || 50;
+      const image_url = document.getElementById('p-img').value.trim();
+
+      if (!name) { toast('Player name required', 'error'); return; }
+
+      try {
+        await api.post('/api/players/add', { room_id: roomId, name, category, base_price, image_url });
+        toast(`✅ ${name} added!`, 'success');
+        document.getElementById('p-name').value = '';
+        document.getElementById('p-img').value = '';
+        const updated = await api.get(`/api/rooms/${roomId}`);
+        roomData.players = updated.players;
+        renderPlayers(updated.players);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    async function uploadCSV(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('csv', file);
+      formData.append('room_id', roomId);
+      try {
+        const result = await api.postForm('/api/players/upload-csv', formData);
+        toast(`✅ Imported ${result.added} players!`, 'success');
+        if (result.errors.length > 0) toast(`Skipped ${result.errors.length} rows`, 'info');
+        const updated = await api.get(`/api/rooms/${roomId}`);
+        roomData.players = updated.players;
+        renderPlayers(updated.players);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+      input.value = '';
+    }
+
+    async function deletePlayer(playerId, event) {
+      event.stopPropagation();
+      if (!confirm('Delete this player?')) return;
+      try {
+        await api.delete(`/api/players/${playerId}`);
+        toast('Player removed', 'success');
+        const updated = await api.get(`/api/rooms/${roomId}`);
+        roomData.players = updated.players;
+        renderPlayers(updated.players);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    // ── PARTICIPANTS (fixed: was missing!) ─────────────────
+    function renderParticipants(participants) {
+      const container = document.getElementById('participants-list');
+      if (!participants || participants.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="padding:16px"><p>No participants yet</p></div>`;
+        return;
+      }
+      container.innerHTML = participants.map((p, i) => {
+        const rankClass = i < 3 ? `top${i + 1}` : '';
+        const isMe = p.id === currentUser.id;
+        return `
+          <div class="leaderboard-row">
+            <span class="rank-num ${rankClass}">${i + 1}</span>
+            <div class="participant-avatar">${p.avatar || '🧑'}</div>
+            <div style="flex:1">
+              <div style="font-weight:600; font-size:0.9rem">${escHtml(p.name)}${isMe ? ' 👤' : ''}</div>
+              <div style="font-size:0.78rem; color:var(--text-muted)">${p.players_bought || 0} players</div>
+            </div>
+            <div class="participant-budget">🪙${p.budget_remaining}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── LEADERBOARD REFRESH ────────────────────────────────
+    async function refreshLeaderboard() {
+      try {
+        const data = await api.get(`/api/auction/leaderboard/${roomId}`);
+        const container = document.getElementById('participants-list');
+        const myEntry = data.find(p => p.id === currentUser.id);
+        if (myEntry) roomData.myBudget = myEntry.budget_remaining;
+
+        container.innerHTML = data.map((p, i) => {
+          const rankClass = i < 3 ? `top${i + 1}` : '';
+          const isMe = p.id === currentUser.id;
+          return `
+            <div class="leaderboard-row">
+              <span class="rank-num ${rankClass}">${i + 1}</span>
+              <div class="participant-avatar">${p.avatar || '🧑'}</div>
+              <div style="flex:1">
+                <div style="font-weight:600; font-size:0.9rem">${escHtml(p.name)}${isMe ? ' 👤' : ''}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted)">${p.players_bought} players bought</div>
+              </div>
+              <div class="participant-budget">🪙${p.budget_remaining}</div>
+            </div>`;
+        }).join('');
+      } catch (err) { /* fail silently */ }
+    }
+
+    // ── BID FEED ───────────────────────────────────────────
+    function addBidFeedItem(amount, bidderName, bidderAvatar) {
+      const feed = document.getElementById('bid-feed');
+      const empty = feed.querySelector('.empty-state');
+      if (empty) empty.remove();
+
+      const item = document.createElement('div');
+      item.className = 'bid-item';
+      item.innerHTML = `
+        <span>${bidderAvatar || '🧑'}</span>
+        <span style="font-weight:600">${escHtml(bidderName)}</span>
+        <span class="bid-amount">🪙${amount}</span>`;
+      feed.insertBefore(item, feed.firstChild);
+      while (feed.children.length > 10) feed.removeChild(feed.lastChild);
+    }
+
+    // ── CHAT ───────────────────────────────────────────────
+    async function loadChatHistory() {
+      try {
+        const messages = await api.get(`/api/auction/chat/${roomId}`);
+        messages.forEach(m => addChatMessage(m.name, m.avatar, m.message, true));
+        scrollChat();
+      } catch { /* ignore */ }
+    }
+
+    function addChatMessage(name, avatar, message, historic = false) {
+      const box = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg';
+      div.innerHTML = `<span class="author">${avatar || '🧑'} ${escHtml(name)}:</span>${escHtml(message)}`;
+      box.appendChild(div);
+      if (!historic) scrollChat();
+    }
+
+    function scrollChat() {
+      const box = document.getElementById('chat-messages');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendChat() {
+      const inp = document.getElementById('chat-input');
+      const msg = inp.value.trim();
+      if (!msg || !socket) return;
+      socket.emit('send_message', { roomId, message: msg });
+      inp.value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('chat-input')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendChat();
+      });
+    });
+
+    // ── UTILS ──────────────────────────────────────────────
+    function copyRoomCode() {
+      const code = document.getElementById('room-code-display')?.textContent;
+      if (code) copyText(`Room Code: ${code} | Join at: ${window.location.href}`);
+    }
+
+    function statusBadge(status) {
+      return { waiting: 'badge-muted', active: 'badge-green', paused: 'badge-gold', ended: 'badge-red' }[status] || 'badge-muted';
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

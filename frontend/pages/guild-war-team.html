@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYUX ESPORTS - Team View</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      overflow-x: hidden;
+    }
+    .team-screen {
+      min-height: calc(100vh - 64px);
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+      gap: 28px;
+      padding: 32px;
+      isolation: isolate;
+    }
+    .team-screen::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(5, 6, 8, 0.72), rgba(5, 6, 8, 0.9)),
+        var(--team-bg, radial-gradient(circle at top, rgba(255, 59, 59, 0.2), transparent 45%));
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1);
+      z-index: -2;
+    }
+    .team-screen::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.42));
+      z-index: -1;
+    }
+    .team-identity {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 18px;
+      padding-bottom: 28px;
+    }
+    .team-art {
+      width: min(520px, 100%);
+      aspect-ratio: 16 / 10;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top, rgba(255, 59, 59, 0.28), transparent 62%),
+        rgba(14, 17, 21, 0.72);
+      box-shadow: var(--shadow), var(--shadow-glow);
+    }
+    .team-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .team-art span {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 9vw, 6rem);
+      color: #fff;
+      text-shadow: 0 0 30px rgba(255, 59, 59, 0.5);
+    }
+    .team-kicker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .team-title {
+      font-size: clamp(2.4rem, 7vw, 5.5rem);
+      line-height: 0.95;
+      max-width: 900px;
+    }
+    .team-subtitle {
+      max-width: 640px;
+      font-size: 1.15rem;
+    }
+    .team-command {
+      align-self: stretch;
+      display: grid;
+      gap: 18px;
+      align-content: center;
+      background: rgba(14, 17, 21, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .team-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .team-stat {
+      min-height: 92px;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+    .team-stat span {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .team-stat strong {
+      display: block;
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      margin-top: 6px;
+    }
+    .team-roster {
+      display: grid;
+      gap: 10px;
+      max-height: 46vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .team-chart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      gap: 15px;
+      height: 250px;
+      margin-top: 10px;
+      padding-top: 20px;
+      padding-bottom: 10px;
+      overflow-x: auto;
+    }
+    .team-chart-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      flex: 1;
+      min-width: 60px;
+    }
+    .team-chart-track {
+      width: 48px;
+      height: 100%;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px 8px 0 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      margin: 12px 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none;
+    }
+    .team-chart-fill {
+      width: 100%;
+      background: linear-gradient(0deg, var(--accent3), var(--accent));
+      box-shadow: 0 0 16px rgba(255, 59, 59, 0.28);
+      transition: height 1s ease;
+      border-radius: 8px 8px 0 0;
+    }
+    .team-chart-name {
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-align: center;
+      word-break: break-word;
+    }
+    .team-chart-value {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .team-member {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+    }
+    .team-member strong {
+      display: block;
+      color: #fff;
+      font-size: 1.05rem;
+    }
+    .team-member span {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .team-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .team-screen {
+        grid-template-columns: 1fr;
+        padding: 20px;
+      }
+      .team-identity {
+        min-height: 54vh;
+      }
+      .team-command {
+        align-content: start;
+      }
+    }
+    @media (max-width: 620px) {
+      .team-stats {
+        grid-template-columns: 1fr;
+      }
+      .team-member {
+        grid-template-columns: 1fr;
+      }
+      .team-chart-row {
+        grid-template-columns: 1fr;
+      }
+      .team-screen {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <main class="team-screen" id="team-screen">
+    <section class="team-identity">
+      <div class="team-art" id="team-art"></div>
+      <div class="team-kicker">
+        <span class="badge badge-red" id="team-status">Team</span>
+        <span class="badge badge-muted" id="team-slot">Slot</span>
+      </div>
+      <h1 class="team-title" id="team-name">Team</h1>
+      <p class="team-subtitle" id="team-summary">Loading team...</p>
+      <div class="team-actions">
+        <a class="btn btn-secondary" href="/guild-war">Back to Guild War</a>
+      </div>
+    </section>
+
+    <aside class="team-command">
+      <div>
+        <h2>Team Command</h2>
+        <p id="team-leader">War Leader</p>
+      </div>
+
+      <div class="team-stats">
+        <div class="team-stat">
+          <span>Players</span>
+          <strong id="team-player-count">0</strong>
+        </div>
+        <div class="team-stat">
+          <span>Achieved</span>
+          <strong id="team-achieved">0</strong>
+        </div>
+        <div class="team-stat">
+          <span>Target</span>
+          <strong id="team-target">0</strong>
+        </div>
+      </div>
+
+      <div>
+        <h2>Point Graph</h2>
+        <div class="team-chart" id="team-point-chart"></div>
+      </div>
+
+      <div>
+        <h2>Roster</h2>
+        <div class="team-roster" id="team-roster"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/guild-war-team.js"></script>
+</body>
+</html>

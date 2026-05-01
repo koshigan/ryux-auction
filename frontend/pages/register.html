@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BidStorm – Register</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .auth-wrap { width: 100%; max-width: 420px; padding: 24px; }
+    .auth-logo { font-family: var(--font-display); font-size: 3rem; font-weight: 900; color: var(--accent); text-align: center; margin-bottom: 4px; }
+    .auth-logo span { color: var(--text); }
+    .auth-tagline { text-align: center; color: var(--text-muted); margin-bottom: 32px; font-size: 0.9rem; }
+    .auth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; }
+    .auth-card h2 { margin-bottom: 24px; }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); }
+    .theme-btn { position: fixed; top: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <button class="theme-btn" onclick="toggleTheme()">🌙</button>
+  <div id="toast-container"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-logo">Bid<span>Storm</span></div>
+    <div class="auth-tagline">⚡ Join the auction arena</div>
+
+    <div class="auth-card">
+      <h2>Create account</h2>
+      <div id="error-msg" style="display:none;" class="alert alert-error mb-16"></div>
+
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <input type="text" id="name" class="form-input" placeholder="e.g. Raj Kumar" autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="email" class="form-input" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="password" class="form-input" placeholder="Min. 6 characters">
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg mt-16" id="reg-btn" onclick="doRegister()">
+        Create Account →
+      </button>
+      <div class="auth-footer">
+        Already have an account? <a href="/login">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+    async function doRegister() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('reg-btn');
+
+      document.getElementById('error-msg').style.display = 'none';
+
+      if (!name || !email || !password) {
+        showError('Please fill in all fields.');
+        return;
+      }
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters.');
+        return;
+      }
+
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        await api.post('/api/auth/register', { name, email, password });
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showError(err.message);
+        btn.textContent = 'Create Account →';
+        btn.disabled = false;
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'flex';
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      document.querySelector('.theme-btn').textContent = document.body.classList.contains('light-mode') ? '☀️' : '🌙';
+    }
+  </script>
+</body>
+</html>

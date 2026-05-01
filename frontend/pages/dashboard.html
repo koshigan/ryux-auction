@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYUX ESPORTS - Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .esports-shell {
+      position: relative;
+      overflow: hidden;
+    }
+    .esports-shell::before,
+    .esports-shell::after {
+      content: '';
+      position: absolute;
+      inset: auto;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+    .esports-shell::before {
+      top: -140px;
+      right: -110px;
+      background: rgba(255, 59, 59, 0.3);
+    }
+    .esports-shell::after {
+      bottom: -180px;
+      left: -100px;
+      background: rgba(56, 189, 248, 0.14);
+    }
+    .hero-strip {
+      position: relative;
+      padding: 54px 0 34px;
+      border-bottom: 1px solid var(--border);
+      background:
+        linear-gradient(135deg, rgba(255, 59, 59, 0.15), transparent 44%),
+        rgba(11, 13, 16, 0.92);
+    }
+    .hero-inner {
+      position: relative;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+    .hero-copy {
+      border: 1px solid rgba(255, 59, 59, 0.18);
+      background: rgba(15, 18, 22, 0.82);
+      border-radius: 22px;
+      padding: 28px;
+      box-shadow: var(--shadow), var(--shadow-glow);
+    }
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.88rem;
+    }
+    .hero-kicker::before {
+      content: '';
+      width: 42px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+    .hero-copy p {
+      max-width: 650px;
+      font-size: 1.02rem;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .nav-card {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      color: var(--text);
+      text-decoration: none;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+      min-height: 188px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .nav-card:hover {
+      text-decoration: none;
+      border-color: var(--accent);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: var(--shadow), var(--shadow-glow);
+    }
+    .nav-card .eyebrow {
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .nav-card strong {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: #fff;
+    }
+    .league-section {
+      padding: 34px 0 48px;
+    }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .section-head p {
+      max-width: 620px;
+    }
+    .room-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      transition: all var(--transition);
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .room-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow), var(--shadow-glow);
+      text-decoration: none;
+    }
+    .room-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .room-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .room-host {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .room-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 999px;
+      transition: all var(--transition);
+    }
+    .tab-btn.active {
+      color: #fff;
+      border-color: var(--accent);
+      background: rgba(255, 59, 59, 0.14);
+      box-shadow: var(--shadow-glow);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+    @media (max-width: 960px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+      }
+      .nav-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .hero-strip {
+        padding-top: 36px;
+      }
+      .hero-copy,
+      .brand-panel,
+      .stats-panel {
+        padding: 18px;
+      }
+      .nav-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="esports-shell">
+    <section class="hero-strip">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="hero-kicker">Admin Command Center</div>
+          <h1>Welcome to <span class="red">RYUX ESPORTS</span></h1>
+          <p>Manage your Free Fire platform from one neon battle station. Guild War controls, league auction rooms, player operations and official oversight all connect from here.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-lg" onclick="showCreateModal()">Create League Auction</button>
+            <button class="btn btn-secondary btn-lg" onclick="showJoinModal()">Join With Code</button>
+          </div>
+
+          <div class="nav-grid">
+            <a class="nav-card" href="/guild-war">
+              <span class="eyebrow">01</span>
+              <strong>Guild War</strong>
+              <p>Control 13 teams, leaders, permissions and war points.</p>
+            </a>
+            <a class="nav-card" href="javascript:void(0)" onclick="toast('Player Statistics module is the next expansion.', 'info')">
+              <span class="eyebrow">02</span>
+              <strong>Player Statistics</strong>
+              <p>Season metrics, progress cards and roster performance.</p>
+            </a>
+            <a class="nav-card" href="javascript:void(0)" onclick="toast('Officials panel placeholder is ready for your next page.', 'info')">
+              <span class="eyebrow">03</span>
+              <strong>Officials</strong>
+              <p>Referees, moderators and tournament control assignments.</p>
+            </a>
+            <a class="nav-card" href="#league-auction">
+              <span class="eyebrow">04</span>
+              <strong>League Auction</strong>
+              <p>Jump into your full-stack live auction rooms below.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="league-section" id="league-auction">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>League Auction</h2>
+            <p>Your existing live auction system stays intact here, now presented as the RYUX ESPORTS league auction module.</p>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('my-rooms', event)">My Rooms</button>
+          <button class="tab-btn" onclick="switchTab('public-rooms', event)">Public Rooms</button>
+        </div>
+
+        <div class="tab-content active" id="tab-my-rooms">
+          <div id="my-rooms-list">
+            <div class="loading"><div class="spinner"></div> Loading your rooms...</div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-public-rooms">
+          <div id="public-rooms-list">
+            <div class="loading"><div class="spinner"></div> Loading public rooms...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      currentUser = await requireLogin();
+      if (!currentUser) return;
+
+      buildNavbar(currentUser);
+      loadMyRooms();
+    }
+
+    function switchTab(tab, event) {
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+
+      if (tab === 'public-rooms') loadPublicRooms();
+      else loadMyRooms();
+    }
+
+    async function loadMyRooms() {
+      const container = document.getElementById('my-rooms-list');
+      try {
+        const rooms = await api.get('/api/rooms/my');
+
+        if (rooms.length === 0) {
+          container.innerHTML = `
+            <div class="card empty-state">
+              <div class="empty-icon">Arena</div>
+              <h3>No league auction rooms yet</h3>
+              <p>Create your first room and bring your lobby online.</p>
+              <button class="btn btn-primary mt-16" onclick="showCreateModal()">Create Room</button>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = `<div class="grid-auto">${rooms.map(roomCard).join('')}</div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    async function loadPublicRooms() {
+      const container = document.getElementById('public-rooms-list');
+      try {
+        const rooms = await api.get('/api/rooms/public');
+        if (rooms.length === 0) {
+          container.innerHTML = `
+            <div class="card empty-state">
+              <div class="empty-icon">Queue</div>
+              <h3>No public rooms available</h3>
+              <p>Spin up one and let your players join the action.</p>
+            </div>`;
+          return;
+        }
+        container.innerHTML = `<div class="grid-auto">${rooms.map(roomCard).join('')}</div>`;
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function roomCard(room) {
+      const statusLabels = { waiting: 'Waiting', active: 'Live', paused: 'Paused', ended: 'Ended' };
+      const isHost = room.host_id === currentUser.id;
+      return `
+        <a href="/room/${room.id}" class="room-card">
+          <div class="room-card-header">
+            <div>
+              <div class="room-title">${escHtml(room.name)}</div>
+              <div class="room-host">${room.host_avatar || ''} ${escHtml(room.host_name)} ${isHost ? '(you)' : ''}</div>
+            </div>
+            <span class="badge ${statusBadge(room.status)}">${statusLabels[room.status]}</span>
+          </div>
+          <div class="room-meta">
+            <span><span class="status-dot ${room.status}"></span> ${room.participant_count} players</span>
+            <span>${room.budget_per_user} credits</span>
+            <span>${room.bid_timer}s timer</span>
+            <span class="badge badge-muted" style="margin-left:auto">${room.room_code}</span>
+          </div>
+        </a>`;
+    }
+
+    function statusBadge(status) {
+      return { waiting: 'badge-muted', active: 'badge-green', paused: 'badge-gold', ended: 'badge-red' }[status] || 'badge-muted';
+    }
+
+    function escHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function showCreateModal() {
+      const { close } = showModal(`
+        <div class="modal-header">
+          <h3>Create League Auction</h3>
+          <button class="modal-close">X</button>
+        </div>
+        <div id="create-error" class="alert alert-error mb-16" style="display:none"></div>
+        <div class="form-group">
+          <label class="form-label">Room Name</label>
+          <input type="text" id="c-name" class="form-input" placeholder="e.g. Ryux Squad Auction" autofocus>
+        </div>
+        <div class="grid-2 gap-16">
+          <div class="form-group">
+            <label class="form-label">Starting Budget</label>
+            <input type="number" id="c-budget" class="form-input" value="1000" min="100" max="100000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bid Timer (sec)</label>
+            <input type="number" id="c-timer" class="form-input" value="30" min="10" max="120">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Visibility</label>
+          <select id="c-public" class="form-select">
+            <option value="true">Public</option>
+            <option value="false">Private</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg mt-16" onclick="doCreateRoom()">Create Room</button>
+      `);
+
+      window._closeModal = close;
+    }
+
+    async function doCreateRoom() {
+      const name = document.getElementById('c-name').value.trim();
+      const budget = document.getElementById('c-budget').value;
+      const timer = document.getElementById('c-timer').value;
+      const isPublic = document.getElementById('c-public').value;
+      const errEl = document.getElementById('create-error');
+
+      if (!name) {
+        errEl.textContent = 'Room name required.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      try {
+        const result = await api.post('/api/rooms/create', {
+          name,
+          budget_per_user: budget,
+          bid_timer: timer,
+          is_public: isPublic
+        });
+        window.location.href = `/room/${result.roomId}`;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      }
+    }
+
+    function showJoinModal() {
+      showModal(`
+        <div class="modal-header">
+          <h3>Join League Auction</h3>
+          <button class="modal-close">X</button>
+        </div>
+        <p style="margin-bottom: 20px;">Enter the room code shared by the host.</p>
+        <div id="join-error" class="alert alert-error mb-16" style="display:none"></div>
+        <div class="form-group">
+          <label class="form-label">Room Code</label>
+          <input type="text" id="j-code" class="form-input" placeholder="e.g. AX7K2P" maxlength="6"
+            style="text-transform:uppercase; font-family: monospace; font-size: 1.5rem; letter-spacing: 0.1em; text-align:center" autofocus>
+        </div>
+        <button class="btn btn-primary btn-full btn-lg mt-16" onclick="doJoinRoom()">Join Room</button>
+      `);
+
+      setTimeout(() => {
+        const inp = document.getElementById('j-code');
+        inp?.addEventListener('input', () => {
+          inp.value = inp.value.toUpperCase();
+        });
+        inp?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') doJoinRoom();
+        });
+      }, 50);
+    }
+
+    async function doJoinRoom() {
+      const code = document.getElementById('j-code').value.trim().toUpperCase();
+      const errEl = document.getElementById('join-error');
+
+      if (code.length < 4) {
+        errEl.textContent = 'Enter a valid room code.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      try {
+        const result = await api.post('/api/rooms/join', { room_code: code });
+        window.location.href = `/room/${result.roomId}`;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

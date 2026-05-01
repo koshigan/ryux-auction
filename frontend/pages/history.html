@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BidStorm – Auction History</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .page-hero { padding: 60px 0 40px; text-align: center; }
+    .page-hero h1 { margin-bottom: 12px; }
+    .page-hero p { font-size: 1.1rem; max-width: 500px; margin: 0 auto; }
+    .history-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: all var(--transition);
+      margin-bottom: 16px;
+    }
+    .history-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .history-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .history-stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .history-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .history-stat .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .history-stat .value {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="page-hero">
+    <h1>📜 Auction History</h1>
+    <p>Your past auctions and performance stats</p>
+  </div>
+
+  <main style="padding: 32px 0 60px">
+    <div class="container">
+      <div id="history-list">
+        <div class="loading">
+          <div class="spinner"></div> Loading your auction history...
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    let currentUser = null;
+
+    async function init() {
+      currentUser = await requireLogin();
+      if (!currentUser) return;
+      buildNavbar(currentUser);
+      loadHistory();
+    }
+
+    async function loadHistory() {
+      const container = document.getElementById('history-list');
+      try {
+        const history = await api.get('/api/auction/history');
+
+        if (history.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🏟️</div>
+              <h3>No auction history yet</h3>
+              <p>Participate in an auction to see your stats here!</p>
+              <a href="/dashboard" class="btn btn-primary mt-16">Go to Dashboard</a>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = history.map(renderHistoryCard).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function renderHistoryCard(room) {
+      const statusLabels = { waiting: 'Not Started', active: 'In Progress', paused: 'Paused', ended: 'Completed' };
+      const statusBadges = { waiting: 'badge-muted', active: 'badge-green', paused: 'badge-gold', ended: 'badge-blue' };
+
+      return `
+        <div class="history-card">
+          <div class="history-header">
+            <div style="flex:1; min-width:200px">
+              <div class="history-title">${escHtml(room.name)}</div>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px">
+                ${timeAgo(room.created_at)} • Code: <span class="badge badge-muted" style="font-family:monospace">${room.room_code}</span>
+              </div>
+            </div>
+            <span class="badge ${statusBadges[room.status]}">${statusLabels[room.status]}</span>
+          </div>
+
+          <div class="history-stats">
+            <div class="history-stat">
+              <div class="label">Players Bought</div>
+              <div class="value" style="color:var(--accent)">${room.players_bought}</div>
+            </div>
+            <div class="history-stat">
+              <div class="label">Total Spent</div>
+              <div class="value" style="color:var(--accent2)">🪙${room.total_spent}</div>
+            </div>
+            <div class="history-stat">
+              <div class="label">Budget Left</div>
+              <div class="value" style="color:var(--accent3)">🪙${room.budget_remaining}</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <a href="/room/${room.id}" class="btn btn-secondary btn-sm">View Room →</a>
+          </div>
+        </div>`;
+    }
+
+    function escHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

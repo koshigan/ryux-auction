@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYUX ESPORTS - Guild Leaderboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      overflow-x: hidden;
+      background: rgba(5, 6, 8, 1);
+    }
+    .leaderboard-screen {
+      min-height: calc(100vh - 64px);
+      padding: 40px 20px;
+      position: relative;
+    }
+    .leaderboard-screen::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.15), transparent 60%);
+      z-index: -1;
+    }
+    .page-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .page-header h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .page-header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .vertical-chart-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      gap: 15px;
+      height: 400px;
+      margin: 0 auto;
+      max-width: 1200px;
+      padding: 20px;
+      background: rgba(14, 17, 21, 0.8);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .vertical-bar-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      flex: 1;
+      min-width: 70px;
+      transition: transform 0.3s ease;
+    }
+    .vertical-bar-container:hover {
+      transform: translateY(-10px);
+    }
+    .vertical-bar-track {
+      width: 54px;
+      height: 100%;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px 8px 0 0;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      margin: 15px 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none;
+    }
+    .vertical-bar-fill {
+      width: 100%;
+      background: linear-gradient(0deg, var(--accent3), var(--accent));
+      box-shadow: 0 0 16px rgba(255, 59, 59, 0.28);
+      transition: height 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border-radius: 8px 8px 0 0;
+      height: 0; /* Animated in JS */
+    }
+    .vertical-bar-label {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    .vertical-bar-value {
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    .leader-badge {
+      font-size: 1.5rem;
+      margin-bottom: 5px;
+      display: block;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    .back-btn-container {
+      text-align: center;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <nav class="navbar" id="navbar"></nav>
+
+  <main class="leaderboard-screen">
+    <div class="page-header">
+      <h1 class="blue">GUILD LEADERBOARD</h1>
+      <p>Comparing total progress across all teams</p>
+    </div>
+
+    <div class="vertical-chart-container" id="guild-leaderboard-chart">
+      <!-- Graph rendered here -->
+    </div>
+
+    <div class="back-btn-container">
+      <a class="btn btn-secondary" href="/guild-war">Back to Admin Dashboard</a>
+    </div>
+  </main>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/guild-war-progress.js"></script>
+</body>
+</html>
