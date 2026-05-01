@@ -275,18 +275,18 @@ async function getGuildWarState() {
 async function saveGuildWarState(state) {
   if (!state) return;
   
-  // 1. Save to Server
+  // 1. Save to Local Storage FIRST (always works)
+  localStorage.setItem(GUILD_WAR_STORAGE_KEY, JSON.stringify(state));
+  console.log('[GuildWar] State saved to local storage');
+  
+  // 2. Try Server sync (non-blocking, won't show error if it fails)
   try {
     await api.post('/api/guild-war/state', state);
+    console.log('[GuildWar] State synced to server');
   } catch (error) {
-    console.error('[GuildWar] Server save failed:', error);
-    if (typeof toast === 'function') {
-      toast(`Sync failed: ${error.message}. Saved locally.`, 'error');
-    }
+    console.warn('[GuildWar] Server sync failed (saved locally):', error.message);
+    // Silent fail - don't show error toast since we saved locally
   }
-
-  // 2. Save to Local Storage
-  localStorage.setItem(GUILD_WAR_STORAGE_KEY, JSON.stringify(state));
 }
 
 function getForce(forceId) {
