@@ -2,6 +2,18 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// Configure SSL based on environment
+const getSSLConfig = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // For Aiven in production - use SSL with proper configuration
+    return {
+      rejectUnauthorized: true
+    };
+  }
+  // Development - no SSL
+  return false;
+};
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
@@ -11,8 +23,8 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // SSL configuration for Aiven (required)
-  ssl: process.env.NODE_ENV === 'production' ? 'require' : false
+  // SSL configuration for Aiven (required for production)
+  ssl: getSSLConfig()
 });
 
 // Test connection on startup
