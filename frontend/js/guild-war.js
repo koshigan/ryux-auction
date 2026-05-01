@@ -64,13 +64,22 @@ const fallbackGuildWarState = {
   ]
 };
 
-function getGuildWarState() {
+async function getGuildWarState() {
+  try {
+    const data = await api.get('/api/guild-war/state');
+    if (data.state) return normalizeGuildWarState(data.state);
+  } catch (error) {
+    console.debug('Failed to fetch guild war state from server', error);
+  }
+  
+  // Fallback to local storage if API fails, then to hardcoded default
   try {
     const stored = localStorage.getItem(GUILD_WAR_STORAGE_KEY);
     if (stored) return normalizeGuildWarState(JSON.parse(stored));
   } catch (error) {
-    console.debug('Failed to parse guild war state', error);
+    console.debug('Failed to parse local guild war state', error);
   }
+  
   return normalizeGuildWarState(JSON.parse(JSON.stringify(fallbackGuildWarState)));
 }
 
@@ -98,17 +107,25 @@ function getDefaultForceId(teamId) {
   return guildWarForces.find((force) => force.teamIds.includes(Number(teamId)))?.id || guildWarForces[0].id;
 }
 
-function saveGuildWarState() {
+async function saveGuildWarState() {
+  try {
+    await api.post('/api/guild-war/state', guildWarState);
+  } catch (error) {
+    console.error('Failed to save guild war state to server', error);
+    toast('Sync failed. Saving locally...', 'error');
+  }
   localStorage.setItem(GUILD_WAR_STORAGE_KEY, JSON.stringify(guildWarState));
 }
 
-let guildWarState = getGuildWarState();
+let guildWarState = null;
 
 async function initGuildWarPage() {
   currentUser = await requireLogin();
   if (!currentUser) return;
 
   buildNavbar(currentUser);
+  
+  guildWarState = await getGuildWarState();
 
   if (currentUser.role === 'war_leader' && currentUser.guildTeamId) {
     selectedTeamId = currentUser.guildTeamId;
@@ -249,7 +266,7 @@ function openEditRoundModal() {
   `);
 }
 
-function saveRoundEdit() {
+async function saveRoundEdit() {
   const value = Number(document.getElementById('edit-round-input').value);
   const error = document.getElementById('round-edit-error');
 
@@ -260,7 +277,7 @@ function saveRoundEdit() {
   }
 
   guildWarState.currentRound = value;
-  saveGuildWarState();
+  await saveGuildWarState();
   renderSessionAccess();
   
   document.querySelector('.modal-close')?.click();
@@ -285,7 +302,7 @@ function openEndRoundModal() {
   `);
 }
 
-function executeEndRound() {
+async function executeEndRound() {
   exportReport('pdf');
 
   guildWarState.currentRound++;
@@ -295,7 +312,7 @@ function executeEndRound() {
     });
   });
 
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   renderSessionAccess();
   
@@ -523,7 +540,7 @@ async function createTeam() {
   }
 
   selectedForceId = forceId;
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast('Team created successfully.', 'success');
@@ -626,11 +643,11 @@ function onEditTeamChange() {
   if (picInput) picInput.value = '';
 }
 
-function clearEditedTeamPicture() {
+async function clearEditedTeamPicture() {
   const teamId = Number(document.getElementById('edit-team-select')?.value || selectedTeamId);
   const team = guildWarState.teams.find((t) => t.id === teamId) || getSelectedTeam();
   team.imageData = '';
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   renderEditTeamRemovePicBtn(team);
   toast('Team picture removed.', 'success');
@@ -671,16 +688,16 @@ async function editSelectedTeam() {
   const leaderMember = team.members.find((member) => member.role === 'War Leader');
   if (leaderMember) leaderMember.name = leaderName;
 
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast('Team details updated.', 'success');
 }
 
-function clearSelectedTeamPicture() {
+async function clearSelectedTeamPicture() {
   const team = getSelectedTeam();
   team.imageData = '';
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast('Team picture removed.', 'success');
@@ -748,7 +765,7 @@ function openAddPlayerModal() {
   `);
 }
 
-function addPlayerToSelectedTeam() {
+async function addPlayerToSelectedTeam() {
   const team = getSelectedTeam();
   const name = document.getElementById('player-name-input').value.trim();
   const targetPoints = Number(document.getElementById('player-target-input').value);
@@ -776,7 +793,7 @@ function addPlayerToSelectedTeam() {
   });
   team.status = 'Active';
 
-  saveGuildWarState();
+  await saveGuildWarState();
   renderAll();
   document.querySelector('.modal-close')?.click();
   toast(`Player added to ${team.name}.`, 'success');

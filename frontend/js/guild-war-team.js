@@ -67,7 +67,7 @@ async function initGuildWarTeamPage() {
   buildNavbar(currentUser);
 
   const teamId = Number(window.location.pathname.split('/').pop());
-  const state = getGuildWarState();
+  const state = await getGuildWarState();
   const team = state.teams.find((entry) => entry.id === teamId);
 
   if (!team) {
@@ -85,7 +85,14 @@ async function initGuildWarTeamPage() {
   renderTeamScreen(team);
 }
 
-function getGuildWarState() {
+async function getGuildWarState() {
+  try {
+    const data = await api.get('/api/guild-war/state');
+    if (data.state) return normalizeGuildWarState(data.state);
+  } catch (error) {
+    console.debug('Failed to fetch guild war state from server', error);
+  }
+
   try {
     const stored = localStorage.getItem(GUILD_WAR_STORAGE_KEY);
     if (stored) return normalizeGuildWarState(JSON.parse(stored));

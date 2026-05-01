@@ -6,11 +6,18 @@ async function initProgressPage() {
 
   buildNavbar(currentUser);
   
-  const state = getGuildWarState();
+  const state = await getGuildWarState();
   renderGuildLeaderboard(state);
 }
 
-function getGuildWarState() {
+async function getGuildWarState() {
+  try {
+    const data = await api.get('/api/guild-war/state');
+    if (data.state) return data.state;
+  } catch (error) {
+    console.debug('Failed to fetch guild war state from server', error);
+  }
+
   try {
     const stored = localStorage.getItem(GUILD_WAR_STORAGE_KEY);
     if (stored) return JSON.parse(stored);

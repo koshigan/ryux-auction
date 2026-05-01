@@ -50,6 +50,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/auction', auctionRoutes);
 app.use('/api/forces', forcesRoutes);
+app.use('/api/guild-war', require('./routes/guildWar'));
 
 // ── PAGE ROUTES (serve HTML files) ───────────────────────
 const pagesDir = path.join(__dirname, '../frontend/pages');

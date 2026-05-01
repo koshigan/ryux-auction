@@ -86,7 +86,14 @@ function normalizeGuildWarState(state) {
   };
 }
 
-function getGuildWarState() {
+async function getGuildWarState() {
+  try {
+    const data = await api.get('/api/guild-war/state');
+    if (data.state) return normalizeGuildWarState(data.state);
+  } catch (error) {
+    console.debug('Failed to fetch guild war state from server', error);
+  }
+
   try {
     const stored = localStorage.getItem(GUILD_WAR_STORAGE_KEY);
     if (stored) return normalizeGuildWarState(JSON.parse(stored));
@@ -96,13 +103,15 @@ function getGuildWarState() {
   return normalizeGuildWarState(JSON.parse(JSON.stringify(fallbackGuildWarState)));
 }
 
-let guildWarState = getGuildWarState();
+let guildWarState = null;
 
 async function initForcePage() {
   currentUser = await requireLogin();
   if (!currentUser) return;
 
   buildNavbar(currentUser);
+
+  guildWarState = await getGuildWarState();
 
   const pathParts = window.location.pathname.split('/');
   const forceId = pathParts[pathParts.length - 1];
