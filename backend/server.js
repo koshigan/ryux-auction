@@ -17,6 +17,7 @@ const guildWarRoutes = require('./routes/guildWar');
 
 const { attachUser } = require('./middleware/auth');
 const setupAuctionSocket = require('./utils/auctionSocket');
+const { startDatabaseHeartbeat } = require('./utils/databaseHeartbeat');
 
 const app = express();
 const server = http.createServer(app);
@@ -100,4 +101,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  
+  // Start database heartbeat to keep Aiven database active
+  startDatabaseHeartbeat();
 });
